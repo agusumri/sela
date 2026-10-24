@@ -187,12 +187,18 @@ DocProject/Help/html
 # Click-Once directory
 publish/
 
+# Release output (tools/build-release.ps1, installer/sela.iss)
+dist/
+installer/Output/
+
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
+# The release publish profile holds no secrets and is used by tools/build-release.ps1.
+!src/Sela/Properties/PublishProfiles/win-x64.pubxml
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to

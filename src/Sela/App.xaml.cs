@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -34,7 +34,8 @@ public partial class App : Application, IAppCommands
     private NotchWindow _notch = null!;
     private TrayIcon? _tray;
     private SettingsWindow? _settingsWindow;
-    private AdhanPlayer _adhan = null!;
+    private IAdhanPlayer _adhan = null!;
+    private bool _mock; // --mock: fixed fake data; no network, disk, registry or sound
     private readonly List<DispatcherTimer> _timers = new();
     private readonly CancellationTokenSource _shutdown = new();
 
@@ -60,21 +61,31 @@ public partial class App : Application, IAppCommands
         AppDomain.CurrentDomain.UnhandledException += (_, args) => Log.Write($"Fatal: {args.ExceptionObject}");
         TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Task", args.Exception); args.SetObserved(); };
         Log.Write($"Sela start ({string.Join(' ', e.Args)})");
+        _mock = e.Args.Contains("--mock", StringComparer.OrdinalIgnoreCase);
 
-        _http = new HttpClient();
-        _http.DefaultRequestHeaders.UserAgent.ParseAdd("Sela/1.0");
-        _store = new SettingsStore();
-        _uiPath = Path.Combine(Path.GetDirectoryName(SettingsStore.DefaultPath)!, "ui.json");
-        LoadSettings();
-        _ui = LoadUi();
+        if (_mock)
+        {
+            _settings = new SelaSettings();
+            _ui = new UiSettings();
+            LoadMockData();
+            _adhan = new SilentAdhanPlayer();
+        }
+        else
+        {
+            _http = new HttpClient();
+            _http.DefaultRequestHeaders.UserAgent.ParseAdd("Sela/1.0");
+            _store = new SettingsStore();
+            _uiPath = Path.Combine(Path.GetDirectoryName(SettingsStore.DefaultPath)!, "ui.json");
+            LoadSettings();
+            _ui = LoadUi();
 
-        _myQuran = new MyQuranClient(_http, Log.Write);
-        _prayers = new PrayerScheduleService(_myQuran, log: Log.Write);
-        _ics = new IcsCalendarProvider(_http, () => _settings.GoogleIcalUrl, () => _settings.DefaultMeetingReminderMinutes, Log.Write);
-        _agenda = CreateAgenda();
-        _state.City = _settings.GetCity();
-
-        _adhan = new AdhanPlayer();
+            _myQuran = new MyQuranClient(_http, Log.Write);
+            _prayers = new PrayerScheduleService(_myQuran, log: Log.Write);
+            _ics = new IcsCalendarProvider(_http, () => _settings.GoogleIcalUrl, () => _settings.DefaultMeetingReminderMinutes, Log.Write);
+            _agenda = CreateAgenda();
+            _state.City = _settings.GetCity();
+            _adhan = new AdhanPlayer();
+        }
         _adhan.PlayingChanged += () => _state.AdhanPlaying = _adhan.IsPlaying;
 
         _notch = new NotchWindow(_state, this);
@@ -127,11 +138,17 @@ public partial class App : Application, IAppCommands
             return;
         }
 
-        bool autostart;
-        try { autostart = Autostart.IsEnabled; }
-        catch (Exception ex) { Log.Error("Autostart", ex); autostart = _settings.StartWithWindows; }
+        bool autostart = _settings.StartWithWindows;
+        if (!_mock)
+        {
+            try { autostart = Autostart.IsEnabled; }
+            catch (Exception ex) { Log.Error("Autostart", ex); }
+        }
 
-        _settingsWindow = new SettingsWindow(Clone(_settings), Clone(_ui), autostart, (q, ct) => _myQuran.SearchCitiesAsync(q, ct));
+        CitySearch search = _mock
+            ? (_, _) => Task.FromResult<IReadOnlyList<City>>(Array.Empty<City>())
+            : (q, ct) => _myQuran.SearchCitiesAsync(q, ct);
+        _settingsWindow = new SettingsWindow(Clone(_settings), Clone(_ui), autostart, search);
         _settingsWindow.Adhan = _adhan;
         _settingsWindow.Saved += OnSettingsSaved;
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
@@ -192,6 +209,7 @@ public partial class App : Application, IAppCommands
 
     private void SaveSettings()
     {
+        if (_mock) return;
         try
         {
             var onDisk = Clone(_settings);
@@ -220,6 +238,7 @@ public partial class App : Application, IAppCommands
 
     private void SaveUi()
     {
+        if (_mock) return;
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_uiPath)!);
@@ -240,12 +259,18 @@ public partial class App : Application, IAppCommands
         _ui = Clone(ui);
         SaveSettings();
         SaveUi();
-        try { Autostart.Set(startWithWindows); }
-        catch (Exception ex) { Log.Error("Autostart", ex); }
+        if (!_mock)
+        {
+            try { Autostart.Set(startWithWindows); }
+            catch (Exception ex) { Log.Error("Autostart", ex); }
+        }
         if (_adhan.IsPlaying && (_settings.AdhanMuted || !_settings.AdhanEnabled)) _adhan.Stop();
 
-        _agenda = CreateAgenda();
-        _state.City = _settings.GetCity();
+        if (!_mock)
+        {
+            _agenda = CreateAgenda();
+            _state.City = _settings.GetCity();
+        }
         _idleVisible = null;
         UpdateIdleVisibility();
         RefreshNow();
@@ -310,6 +335,7 @@ public partial class App : Application, IAppCommands
 
     private async Task EnsureScheduleAsync()
     {
+        if (_mock) return; // fixed schedule set by LoadMockData
         var date = DateOnly.FromDateTime(DateTime.Now);
         var city = _settings.GetCity();
         var key = (date, city.Id);
@@ -352,7 +378,7 @@ public partial class App : Application, IAppCommands
 
     private async Task RefreshCalendarAsync()
     {
-        if (_calendarBusy) return;
+        if (_mock || _calendarBusy) return; // --mock keeps its fixed agenda
         _calendarBusy = true;
         _state.CalendarLoading = true;
         try
@@ -389,6 +415,21 @@ public partial class App : Application, IAppCommands
     private void OnTimeChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(RefreshNow);
 
     // ---- demo / test ----
+
+    /// <summary>--mock: fixed Jakarta schedule (Ashar in 25 min) and three fake events today.</summary>
+    private void LoadMockData()
+    {
+        var start = DateTime.Now;
+        (_today, _tomorrow) = MockData.Schedule(start);
+        _scheduleKey = (_today.Date, _today.City.Id);
+        _events = MockData.Agenda(start);
+        _state.City = _today.City;
+        _state.Today = _today;
+        _state.ScheduleAvailable = true;
+        _state.Agenda = _events;
+        _state.CalendarLoading = false;
+        _state.Next = ReminderScheduler.NextPrayer(start, _today, _tomorrow);
+    }
 
     /// <summary>Shows a reminder and, for prayer-time reminders, sounds the adzan (PlayFor checks the settings).</summary>
     private void Deliver(Reminder reminder)
