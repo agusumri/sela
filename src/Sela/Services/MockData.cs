@@ -1,4 +1,5 @@
 using Sela.Core;
+using Sela.Localization;
 
 namespace Sela.Services;
 
@@ -18,8 +19,9 @@ public static class MockData
     /// Jakarta schedule shifted so Ashar is 25 minutes after <paramref name="start"/>.
     /// Times are clamped to stay on the start date (order stays non-decreasing).
     /// </summary>
-    public static (DaySchedule Today, DaySchedule Tomorrow) Schedule(DateTime start)
+    public static (DaySchedule Today, DaySchedule Tomorrow) Schedule(DateTime start, City? city = null)
     {
+        city ??= DefaultCity.Jakarta;
         var day = start.Date;
         var offset = start.AddMinutes(25) - day.Add(new TimeSpan(14, 51, 0));
         var lastMinute = day.AddDays(1).AddMinutes(-1);
@@ -28,9 +30,13 @@ public static class MockData
             .ToList();
         var tomorrow = today.Select(t => t with { Time = t.Time.AddDays(1) }).ToList();
         var date = DateOnly.FromDateTime(day);
-        return (new DaySchedule(date, DefaultCity.Jakarta, today),
-                new DaySchedule(date.AddDays(1), DefaultCity.Jakarta, tomorrow));
+        return (new DaySchedule(date, city, today),
+                new DaySchedule(date.AddDays(1), city, tomorrow));
     }
+
+    /// <summary>Fixed world city for <c>--mock-world</c> screenshots.</summary>
+    public static City London { get; } = new("geo:2643743", "London", "England", 51.50853, -0.12574,
+        "Europe/London", "United Kingdom");
 
     /// <summary>Three fake events today, relative to <paramref name="start"/>.</summary>
     public static IReadOnlyList<CalendarEvent> Agenda(DateTime start)
@@ -49,11 +55,19 @@ public static class MockData
         };
     }
 
-    /// <summary>Arbain no. 1 as the fixed hadith of the day.</summary>
-    public static Hadith Hadith(DateOnly date) => new(
+    /// <summary>Arbain no. 1 as the fixed hadith of the day, in the current UI language.</summary>
+    public static Hadith Hadith(DateOnly date) => Loc.Instance.Language == AppLanguage.English
+        ? new(
+            "Forty Hadith of an-Nawawi", 1, "Hadith 1",
+            "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى",
+            "Actions are judged by intentions, and each person will have what they intended. [Bukhari & Muslim]",
+            AppLanguage.English,
+            date)
+        : new(
         "Arbain Nawawi", 1, "Amalan Bergantung pada Niat",
         "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى",
         "Sesungguhnya setiap amalan tergantung pada niatnya, dan setiap orang akan mendapatkan sesuai dengan apa yang ia niatkan. (HR. Bukhari dan Muslim)",
+        AppLanguage.Indonesian,
         date);
 
     /// <summary>Morning dzikir done, the rest still open.</summary>

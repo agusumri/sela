@@ -16,6 +16,8 @@ public static class Log
     {
         try
         {
+            // Messages can quote API data: keep every entry on one line so it can't forge log lines.
+            message = (message ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ');
             var line = string.Create(CultureInfo.InvariantCulture, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}{Environment.NewLine}");
             lock (Gate)
             {

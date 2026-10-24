@@ -11,6 +11,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using Sela.Core;
+using Sela.Localization;
 using Sela.Views.Notch;
 
 namespace Sela.Views;
@@ -70,13 +71,13 @@ public partial class NotchWindow : Window, INotchHost
     private static readonly SkyPhase? ForcedSky = ParseForcedSky();
     private static readonly bool SkyTour =
         Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--sky-tour", StringComparison.OrdinalIgnoreCase));
-    private static readonly (SkyPhase Phase, bool Excited, string Label)[] Tour =
+    private static readonly (SkyPhase Phase, bool Excited, string LabelKey)[] Tour =
     [
-        (SkyPhase.Dawn, false, "Fajar"),
-        (SkyPhase.Day, false, "Siang"),
-        (SkyPhase.Dusk, false, "Sore"),
-        (SkyPhase.Night, false, "Malam"),
-        (SkyPhase.Night, true, "Mau sholat"),
+        (SkyPhase.Dawn, false, "Notch_TourDawn"),
+        (SkyPhase.Day, false, "Notch_TourDay"),
+        (SkyPhase.Dusk, false, "Notch_TourDusk"),
+        (SkyPhase.Night, false, "Notch_TourNight"),
+        (SkyPhase.Night, true, "Notch_TourExcited"),
     ];
     private readonly DispatcherTimer _tourTimer = new() { Interval = TimeSpan.FromSeconds(6) };
     private int _tourStep;
@@ -110,6 +111,7 @@ public partial class NotchWindow : Window, INotchHost
         Deactivated += (_, _) => { if (_mode == Mode.Panel) Rest(); };
         PreviewKeyDown += OnPreviewKeyDown;
         Closed += OnClosed;
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
         IsVisibleChanged += (_, _) => UpdateMascotAnimating();
 
 
@@ -242,12 +244,24 @@ public partial class NotchWindow : Window, INotchHost
     private void OnClosed(object? sender, EventArgs e)
     {
         State.PropertyChanged -= OnStateChanged;
+        Loc.Instance.LanguageChanged -= OnLanguageChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         SystemParameters.StaticPropertyChanged -= OnSystemParametersChanged;
         _hoverIntent.Stop();
         _leaveGrace.Stop();
         _queueGap.Stop();
         _reminderClock?.Controller?.Stop();
+    }
+
+    /// <summary>XAML bindings refresh themselves; everything built in code is rebuilt here.</summary>
+    private void OnLanguageChanged()
+    {
+        RebuildPrayerRows();
+        RebuildAgendaRows();
+        RebuildHabitRows();
+        _shownHadith = null; // re-render the hadith page
+        Refresh();
+        UpdatePanelHeight();
     }
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
@@ -830,7 +844,7 @@ public partial class NotchWindow : Window, INotchHost
             var step = Tour[_tourStep];
             Mascot.Phase = step.Phase;
             Mascot.IsExcited = step.Excited;
-            IdleName.Text = step.Label;
+            IdleName.Text = Loc.T(step.LabelKey);
             IdleSep.Text = "  ·  ";
             IdleCountdown.Text = $"{_tourStep + 1}/{Tour.Length}";
         }
@@ -839,7 +853,7 @@ public partial class NotchWindow : Window, INotchHost
         // glance
         if (next is { } g)
         {
-            GlanceLabel.Text = g.Time.Date > now.Date ? "Sholat berikutnya · besok" : "Sholat berikutnya";
+            GlanceLabel.Text = Loc.T(g.Time.Date > now.Date ? "Notch_NextPrayerTomorrow" : "Notch_NextPrayer");
             GlancePrayer.Text = NotchFormat.PrayerName(g.Prayer);
             GlancePrayerTime.Text = NotchFormat.Hm(g.Time);
             GlanceCountdown.Text = NotchFormat.Countdown(g.Time - now);
@@ -847,7 +861,7 @@ public partial class NotchWindow : Window, INotchHost
         else
         {
             GlanceLabel.Text = "Sela";
-            GlancePrayer.Text = State.Today is null ? "Jadwal belum tersedia" : "Jadwal sholat";
+            GlancePrayer.Text = Loc.T(State.Today is null ? "Notch_ScheduleUnavailable" : "Notch_PrayerTimes");
             GlancePrayerTime.Text = string.Empty;
             GlanceCountdown.Text = string.Empty;
         }
@@ -858,15 +872,15 @@ public partial class NotchWindow : Window, INotchHost
             .FirstOrDefault();
         if (meeting is not null)
         {
-            GlanceMeeting.Text = string.IsNullOrWhiteSpace(meeting.Subject) ? "(Tanpa judul)" : meeting.Subject;
+            GlanceMeeting.Text = string.IsNullOrWhiteSpace(meeting.Subject) ? Loc.T("Notch_NoTitle") : meeting.Subject;
             GlanceMeeting.Foreground = (Brush)FindResource("TextPrimary");
-            var when = meeting.Start <= now ? "Sedang berlangsung" : NotchFormat.Hm(meeting.Start);
+            var when = meeting.Start <= now ? Loc.T("Notch_InProgress") : NotchFormat.Hm(meeting.Start);
             SetGlanceMeetingMeta(when, meeting.Source);
             _glanceJoinUrl = NotchFormat.IsHttps(meeting.JoinUrl) ? meeting.JoinUrl : null;
         }
         else
         {
-            GlanceMeeting.Text = State.CalendarLoading ? "Memuat agenda…" : "Tidak ada meeting lagi hari ini";
+            GlanceMeeting.Text = Loc.T(State.CalendarLoading ? "Notch_LoadingAgenda" : "Notch_NoMoreMeetings");
             GlanceMeeting.Foreground = (Brush)FindResource("TextSecondary");
             SetGlanceMeetingMeta(string.Empty, null);
             _glanceJoinUrl = null;
@@ -899,18 +913,18 @@ public partial class NotchWindow : Window, INotchHost
         var hasAgenda = _agendaRows.Count > 0;
         AgendaContent.Visibility = hasAgenda ? Visibility.Visible : Visibility.Collapsed;
         AgendaEmpty.Visibility = hasAgenda ? Visibility.Collapsed : Visibility.Visible;
-        AgendaCount.Text = hasAgenda ? $"{_agendaRows.Count} agenda" : string.Empty;
+        AgendaCount.Text = hasAgenda ? Loc.F(_agendaRows.Count == 1 ? "Notch_AgendaCountOne" : "Notch_AgendaCount", _agendaRows.Count) : string.Empty;
         if (State.CalendarLoading)
         {
             AgendaEmptyIcon.Text = "\uE895"; // sync
-            AgendaEmptyTitle.Text = "Memuat agenda…";
-            AgendaEmptyBody.Text = "Sebentar ya";
+            AgendaEmptyTitle.Text = Loc.T("Notch_LoadingAgenda");
+            AgendaEmptyBody.Text = Loc.T("Notch_JustAMoment");
         }
         else
         {
             AgendaEmptyIcon.Text = "\uE787";
-            AgendaEmptyTitle.Text = "Tidak ada agenda hari ini";
-            AgendaEmptyBody.Text = "Waktunya fokus";
+            AgendaEmptyTitle.Text = Loc.T("Notch_NoAgenda");
+            AgendaEmptyBody.Text = Loc.T("Notch_TimeToFocus");
         }
 
         // panel: hadits

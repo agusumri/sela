@@ -43,7 +43,7 @@ public sealed class HadithServiceTests : IDisposable
         Assert.Equal(1, hadith.Number);
         Assert.Equal("Amalan Bergantung pada Niat", hadith.Title);
         Assert.Equal("إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ", hadith.Arabic);
-        Assert.Equal("Sesungguhnya setiap amalan tergantung pada niatnya.", hadith.Indonesian);
+        Assert.Equal("Sesungguhnya setiap amalan tergantung pada niatnya.", hadith.Translation);
         Assert.Equal(default, hadith.Date);
         Assert.Equal("https://api.myquran.com/v2/hadits/arbain/1", Assert.Single(h.Requests).ToString());
     }
@@ -173,6 +173,6 @@ public sealed class HadithServiceTests : IDisposable
         Assert.Equal(1, hadith.Number);
         Assert.False(string.IsNullOrWhiteSpace(hadith.Title));
         Assert.False(string.IsNullOrWhiteSpace(hadith.Arabic));
-        Assert.False(string.IsNullOrWhiteSpace(hadith.Indonesian));
+        Assert.False(string.IsNullOrWhiteSpace(hadith.Translation));
     }
 }

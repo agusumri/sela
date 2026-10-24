@@ -35,29 +35,37 @@ public sealed class ReminderScheduler
         }
 
         var due = new List<Reminder>();
-        AddPrayerReminders(due, now, today, s);
-        AddMeetingReminders(due, now, events);
+        var lang = s.ResolveLanguage();
+        AddPrayerReminders(due, now, today, s, lang);
+        AddMeetingReminders(due, now, events, lang);
 
         due.RemoveAll(r => !_fired.Add(r.Key));
         due.Sort((a, b) => a.DueAt.CompareTo(b.DueAt));
         return due;
     }
 
-    private static void AddPrayerReminders(List<Reminder> due, DateTime now, DaySchedule today, SelaSettings s)
+    private static void AddPrayerReminders(List<Reminder> due, DateTime now, DaySchedule today, SelaSettings s, AppLanguage lang)
     {
         var lead = TimeSpan.FromMinutes(Math.Max(0, s.PrayerSoonMinutes));
         foreach (var pt in today.Times)
         {
             if (s.PrayerEnabled is null || !s.PrayerEnabled.TryGetValue(pt.Prayer, out var on) || !on) continue;
             var t = pt.Time;
-            var name = Name(pt.Prayer);
+            var name = Names.Prayer(pt.Prayer, lang);
+            var en = lang == AppLanguage.English;
+            var place = today.City.DisplayName;
             var badge = Hm(t);
             var dateKey = today.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
 
             if (lead > TimeSpan.Zero && now >= t - lead && now < t)
             {
                 int n = (int)Math.Ceiling((t - now).TotalMinutes);
-                var (title, body) = pt.Prayer switch
+                var (title, body) = en ? pt.Prayer switch
+                {
+                    Prayer.Imsak => ($"Imsak in {n} min", "Imsak time"),
+                    Prayer.Terbit => ($"Sunrise in {n} min", "Sunrise"),
+                    _ => ($"{name} in {n} min", $"Get ready for {name}"),
+                } : pt.Prayer switch
                 {
                     Prayer.Imsak => ($"Imsak {n} menit lagi", "Waktu imsak"),
                     Prayer.Terbit => ($"{n} menit lagi {name}", "Matahari terbit"),
@@ -68,18 +76,23 @@ public sealed class ReminderScheduler
 
             if (now >= t && now < t + PrayerNowWindow)
             {
-                var body = pt.Prayer switch
+                var (title, body) = en ? pt.Prayer switch
+                {
+                    Prayer.Imsak => ("Imsak", $"Imsak has begun in {place}"),
+                    Prayer.Terbit => ("Sunrise", $"The sun has risen in {place}"),
+                    _ => ($"Time for {name}", $"It's {name} time in {place}"),
+                } : ($"Waktu {name}", pt.Prayer switch
                 {
                     Prayer.Imsak => $"Sudah masuk waktu imsak untuk {today.City.DisplayName}",
                     Prayer.Terbit => $"Matahari terbit di {today.City.DisplayName}",
                     _ => $"Sudah masuk waktu {name} untuk {today.City.DisplayName}",
-                };
-                due.Add(new Reminder($"now|{dateKey}|{pt.Prayer}", ReminderKind.PrayerNow, $"Waktu {name}", body, badge, null, t, pt.Prayer));
+                });
+                due.Add(new Reminder($"now|{dateKey}|{pt.Prayer}", ReminderKind.PrayerNow, title, body, badge, null, t, pt.Prayer));
             }
         }
     }
 
-    private static void AddMeetingReminders(List<Reminder> due, DateTime now, IReadOnlyList<CalendarEvent> events)
+    private static void AddMeetingReminders(List<Reminder> due, DateTime now, IReadOnlyList<CalendarEvent> events, AppLanguage lang)
     {
         foreach (var e in events)
         {
@@ -90,7 +103,9 @@ public sealed class ReminderScheduler
             if (now < remindAt || now >= e.Start + MeetingLateWindow) continue;
 
             int n = (int)Math.Ceiling((e.Start - now).TotalMinutes);
-            var when = n > 0 ? $"mulai {n} menit lagi" : "mulai sekarang";
+            var when = lang == AppLanguage.English
+                ? (n > 0 ? $"starts in {n} min" : "starting now")
+                : (n > 0 ? $"mulai {n} menit lagi" : "mulai sekarang");
             var body = $"{Hm(e.Start)}–{Hm(e.End)} · {when}";
             if (!string.IsNullOrWhiteSpace(e.Location)) body += $" · {e.Location}";
             due.Add(new Reminder($"meeting|{e.Key}", ReminderKind.Meeting, e.Subject, body, Hm(e.Start), e.JoinUrl, remindAt,

@@ -23,7 +23,7 @@ public class ReminderSchedulerTests
     public void PrayerSoon_fires_once_inside_lead_window()
     {
         var sch = new ReminderScheduler();
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         Assert.Empty(sch.Due(At(11, 28, 59), Schedule(), NoEvents, s));
 
         var r = Assert.Single(sch.Due(At(11, 29), Schedule(), NoEvents, s));
@@ -38,7 +38,7 @@ public class ReminderSchedulerTests
     [Fact]
     public void PrayerNow_fires_in_five_minute_window_only()
     {
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         var r = Assert.Single(new ReminderScheduler().Due(At(11, 39, 30), Schedule(), NoEvents, s));
         Assert.Equal(ReminderKind.PrayerNow, r.Kind);
         Assert.Equal("Waktu Dzuhur", r.Title);
@@ -52,7 +52,7 @@ public class ReminderSchedulerTests
     {
         var sch = new ReminderScheduler();
         // Asleep from 10:00 to 15:00: Dzuhur reminders are gone; Ashar (14:51) is still in its 5-min window.
-        var due = sch.Due(At(14, 52), Schedule(), NoEvents, new SelaSettings());
+        var due = sch.Due(At(14, 52), Schedule(), NoEvents, new SelaSettings { Language = AppLanguage.Indonesian });
         var r = Assert.Single(due);
         Assert.Equal("Waktu Ashar", r.Title);
     }
@@ -60,7 +60,7 @@ public class ReminderSchedulerTests
     [Fact]
     public void Disabled_prayers_and_zero_lead_are_respected()
     {
-        var s = new SelaSettings { PrayerSoonMinutes = 0 };
+        var s = new SelaSettings { Language = AppLanguage.Indonesian, PrayerSoonMinutes = 0 };
         s.PrayerEnabled[Prayer.Dzuhur] = false;
         Assert.Empty(new ReminderScheduler().Due(At(11, 39), Schedule(), NoEvents, s));
         Assert.Empty(new ReminderScheduler().Due(At(14, 45), Schedule(), NoEvents, s));
@@ -70,7 +70,7 @@ public class ReminderSchedulerTests
     [Fact]
     public void Optional_prayers_have_their_own_copy()
     {
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         s.PrayerEnabled[Prayer.Imsak] = true;
         s.PrayerEnabled[Prayer.Terbit] = true;
         var imsak = Assert.Single(new ReminderScheduler().Due(At(3, 55), Schedule(), NoEvents, s));
@@ -84,7 +84,7 @@ public class ReminderSchedulerTests
     public void Day_rollover_resets_dedup()
     {
         var sch = new ReminderScheduler();
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         Assert.Single(sch.Due(At(4, 11), Schedule(), NoEvents, s));
         Assert.Empty(sch.Due(At(4, 12), Schedule(), NoEvents, s));
         Assert.Single(sch.Due(At(4, 11, 0, 1), Schedule(1), NoEvents, s));
@@ -97,7 +97,7 @@ public class ReminderSchedulerTests
     public void Meeting_reminder_window_and_copy()
     {
         var sch = new ReminderScheduler();
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         var events = new[] { Meeting(At(9, 0)) };
         Assert.Empty(sch.Due(At(8, 49, 59), Schedule(), events, s));
 
@@ -114,9 +114,9 @@ public class ReminderSchedulerTests
     public void Meeting_at_start_says_now_and_expires_after_one_minute()
     {
         var events = new[] { Meeting(At(9, 0), location: null) };
-        var r = Assert.Single(new ReminderScheduler().Due(At(9, 0, 30), Schedule(), events, new SelaSettings()));
+        var r = Assert.Single(new ReminderScheduler().Due(At(9, 0, 30), Schedule(), events, new SelaSettings { Language = AppLanguage.Indonesian }));
         Assert.Equal("09:00–09:30 · mulai sekarang", r.Body);
-        Assert.Empty(new ReminderScheduler().Due(At(9, 1), Schedule(), events, new SelaSettings()));
+        Assert.Empty(new ReminderScheduler().Due(At(9, 1), Schedule(), events, new SelaSettings { Language = AppLanguage.Indonesian }));
     }
 
     [Fact]

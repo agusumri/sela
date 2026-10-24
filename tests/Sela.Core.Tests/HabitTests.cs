@@ -23,7 +23,7 @@ public class HabitTests
     public void DzikirPagi_fires_once_inside_window_not_before_or_after()
     {
         var sch = new HabitScheduler();
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         var t = Mem();
         Assert.Empty(sch.Due(At(4, 25, 59), Schedule(), s, t));
 
@@ -43,7 +43,7 @@ public class HabitTests
     [Fact]
     public void Window_end_is_exclusive_and_late_start_still_fires_inside()
     {
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         Assert.Empty(new HabitScheduler().Due(At(11, 39), Schedule(), s, Mem()));
         var r = Assert.Single(new HabitScheduler().Due(At(11, 38), Schedule(), s, Mem()));
         Assert.Equal(At(4, 26), r.DueAt);
@@ -53,7 +53,7 @@ public class HabitTests
     public void Sholawat_and_DzikirPetang_use_their_windows()
     {
         var sch = new HabitScheduler();
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         var t = Mem();
         Assert.Empty(sch.Due(At(12, 8), Schedule(), s, t));
         var sh = Assert.Single(sch.Due(At(12, 9), Schedule(), s, t));
@@ -74,16 +74,16 @@ public class HabitTests
     {
         var t = Mem();
         t.MarkDone(Habit.DzikirPagi, Day);
-        Assert.Empty(new HabitScheduler().Due(At(5, 0), Schedule(), new SelaSettings(), t));
+        Assert.Empty(new HabitScheduler().Due(At(5, 0), Schedule(), new SelaSettings { Language = AppLanguage.Indonesian }, t));
     }
 
     [Fact]
     public void Not_fired_when_disabled()
     {
-        var master = new SelaSettings { HabitRemindersEnabled = false };
+        var master = new SelaSettings { Language = AppLanguage.Indonesian, HabitRemindersEnabled = false };
         Assert.Empty(new HabitScheduler().Due(At(5, 0), Schedule(), master, Mem()));
 
-        var perHabit = new SelaSettings();
+        var perHabit = new SelaSettings { Language = AppLanguage.Indonesian };
         perHabit.HabitEnabled[Habit.DzikirPagi] = false;
         Assert.Empty(new HabitScheduler().Due(At(5, 0), Schedule(), perHabit, Mem()));
         Assert.Single(new HabitScheduler().Due(At(12, 30), Schedule(), perHabit, Mem()));
@@ -93,7 +93,7 @@ public class HabitTests
     public void Snooze_refires_after_30_minutes_with_new_key()
     {
         var sch = new HabitScheduler();
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         var t = Mem();
         var first = Assert.Single(sch.Due(At(5, 0), Schedule(), s, t));
         sch.Snooze(Habit.DzikirPagi, At(5, 1));
@@ -110,7 +110,7 @@ public class HabitTests
     public void Snooze_past_window_end_never_refires()
     {
         var sch = new HabitScheduler();
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         var t = Mem();
         Assert.Single(sch.Due(At(11, 20), Schedule(), s, t));
         sch.Snooze(Habit.DzikirPagi, At(11, 20)); // 11:50 is after Dzuhur 11:39
@@ -121,7 +121,7 @@ public class HabitTests
     public void Day_rollover_resets_state()
     {
         var sch = new HabitScheduler();
-        var s = new SelaSettings();
+        var s = new SelaSettings { Language = AppLanguage.Indonesian };
         var t = Mem();
         Assert.Single(sch.Due(At(5, 0), Schedule(), s, t));
         var next = Assert.Single(sch.Due(At(5, 0, 0, 1), Schedule(1), s, t));

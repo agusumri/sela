@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Sela.Core;
+using Sela.Localization;
 
 namespace Sela.Views.Notch;
 
@@ -51,14 +52,14 @@ public sealed class AgendaRow : NotchRow
     }
 
     public CalendarEvent Event { get; }
-    public string Subject => string.IsNullOrWhiteSpace(Event.Subject) ? "(Tanpa judul)" : Event.Subject;
+    public string Subject => string.IsNullOrWhiteSpace(Event.Subject) ? Loc.T("Notch_NoTitle") : Event.Subject;
     public string StartText => NotchFormat.Hm(Event.Start);
     public string EndText => NotchFormat.Hm(Event.End);
     public string? Location => string.IsNullOrWhiteSpace(Event.Location) ? null : Event.Location.Trim();
     public bool HasLocation => Location is not null;
     public string SourceText => NotchFormat.SourceName(Event.Source);
     public string SourceGlyph => NotchFormat.SourceGlyph(Event.Source);
-    public string SourceLabel => $"Dari {SourceText}";
+    public string SourceLabel => Loc.F("Notch_FromSource", SourceText);
     public bool IsGoogle => Event.Source == CalendarSource.Google;
     public string? JoinUrl { get; }
     public bool HasJoin => JoinUrl is not null;
@@ -79,5 +80,5 @@ public sealed class HabitRow : NotchRow
     public Habit Habit { get; }
     public bool Done { get; }
     public string Name => NotchFormat.HabitName(Habit);
-    public string Hint => Done ? $"{Name}: sudah" : $"Tandai {Name} sudah";
+    public string Hint => Loc.F(Done ? "Notch_HabitDoneHint" : "Notch_HabitMarkHint", Name);
 }

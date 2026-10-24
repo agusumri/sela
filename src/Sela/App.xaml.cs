@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using Sela.Core;
+using Sela.Localization;
 using Sela.Services;
 using Sela.Views;
 
@@ -25,6 +26,7 @@ public partial class App : Application, IAppCommands
     private SelaSettings _settings = null!;   // in memory: GoogleIcalUrl is decrypted
     private UiSettings _ui = null!;
     private MyQuranClient _myQuran = null!;
+    private LocationSearch _locationSearch = null!;
     private PrayerScheduleService _prayers = null!;
     private readonly ReminderScheduler _scheduler = new();
     private IcsCalendarProvider _ics = null!;
@@ -33,7 +35,8 @@ public partial class App : Application, IAppCommands
     private readonly HabitScheduler _habitScheduler = new();
     private HadithService? _hadithService; // null under --mock
     private DateOnly _day;                  // day the habit map / hadith were last refreshed for
-    private bool _hadithBusy;
+    private bool _hadithBusy, _hadithReloadPending;
+    private AppLanguage? _langOverride;     // --lang=en|id: this session only, never saved
 
     private readonly NotchState _state = new();
     private NotchWindow _notch = null!;
@@ -45,7 +48,7 @@ public partial class App : Application, IAppCommands
     private readonly CancellationTokenSource _shutdown = new();
 
     private DaySchedule? _today, _tomorrow;
-    private (DateOnly Date, string CityId) _scheduleKey;
+    private (DateOnly Date, string CityId, int? Method, bool AsrHanafi) _scheduleKey;
     private bool _scheduleBusy, _calendarBusy;
     private IReadOnlyList<CalendarEvent> _events = Array.Empty<CalendarEvent>();
     private bool? _idleVisible;
@@ -67,17 +70,20 @@ public partial class App : Application, IAppCommands
         TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Task", args.Exception); args.SetObserved(); };
         Log.Write($"Sela start ({string.Join(' ', e.Args)})");
         _mock = e.Args.Contains("--mock", StringComparer.OrdinalIgnoreCase);
+        _langOverride = ParseLanguageArg(e.Args);
+        Loc.MissingKeyLog = Log.Write;
 
         if (_mock)
         {
             _settings = new SelaSettings();
             _ui = new UiSettings();
+            ApplyLanguage(); // before any mock text is built
             _tracker = new HabitTracker(null);
             // Seed the in-memory tracker with the sample "done" state.
             var today = DateOnly.FromDateTime(DateTime.Now);
             foreach (var (habit, done) in MockData.HabitsDone())
                 if (done) _tracker.MarkDone(habit, today);
-            LoadMockData();
+            LoadMockData(e.Args.Contains("--mock-world", StringComparer.OrdinalIgnoreCase) ? MockData.London : null);
             _adhan = new SilentAdhanPlayer();
         }
         else
@@ -88,9 +94,12 @@ public partial class App : Application, IAppCommands
             _uiPath = Path.Combine(Path.GetDirectoryName(SettingsStore.DefaultPath)!, "ui.json");
             LoadSettings();
             _ui = LoadUi();
+            ApplyLanguage();
 
             _myQuran = new MyQuranClient(_http, Log.Write);
-            _prayers = new PrayerScheduleService(_myQuran, log: Log.Write);
+            var aladhan = new AladhanClient(_http, Log.Write);
+            _locationSearch = new LocationSearch(_myQuran, new GeocodingClient(_http, Log.Write), Log.Write);
+            _prayers = new PrayerScheduleService(_myQuran, log: Log.Write, world: aladhan);
             _ics = new IcsCalendarProvider(_http, () => _settings.GoogleIcalUrl, () => _settings.DefaultMeetingReminderMinutes, Log.Write);
             _agenda = CreateAgenda();
             _state.City = _settings.GetCity();
@@ -99,6 +108,7 @@ public partial class App : Application, IAppCommands
             _hadithService = new HadithService(new HadithClient(_http, Log.Write), log: Log.Write);
         }
         _adhan.PlayingChanged += () => _state.AdhanPlaying = _adhan.IsPlaying;
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
 
         _notch = new NotchWindow(_state, this);
         _notch.Show();
@@ -131,6 +141,7 @@ public partial class App : Application, IAppCommands
         {
             SystemEvents.PowerModeChanged -= OnPowerModeChanged;
             SystemEvents.TimeChanged -= OnTimeChanged;
+            Loc.Instance.LanguageChanged -= OnLanguageChanged;
             foreach (var t in _timers) t.Stop();
             _adhan?.Stop();
             _shutdown.Cancel();
@@ -163,7 +174,7 @@ public partial class App : Application, IAppCommands
 
         CitySearch search = _mock
             ? (_, _) => Task.FromResult<IReadOnlyList<City>>(Array.Empty<City>())
-            : (q, ct) => _myQuran.SearchCitiesAsync(q, ct);
+            : (q, ct) => _locationSearch.SearchAsync(q, Loc.Instance.Language, ct);
         _settingsWindow = new SettingsWindow(Clone(_settings), Clone(_ui), autostart, search);
         _settingsWindow.Adhan = _adhan;
         _settingsWindow.Saved += OnSettingsSaved;
@@ -308,6 +319,9 @@ public partial class App : Application, IAppCommands
             catch (Exception ex) { Log.Error("Autostart", ex); }
         }
         if (_adhan.IsPlaying && (_settings.AdhanMuted || !_settings.AdhanEnabled)) _adhan.Stop();
+        // A saved choice replaces the session-only --lang override.
+        _langOverride = null;
+        ApplyLanguage();
 
         if (!_mock)
         {
@@ -319,6 +333,43 @@ public partial class App : Application, IAppCommands
         RefreshHabitsDone();
         RefreshHiddenPrayers();
         RefreshNow();
+    }
+
+    // ---- language ----
+
+    private static AppLanguage? ParseLanguageArg(string[] args)
+    {
+        foreach (var arg in args)
+        {
+            if (!arg.StartsWith("--lang=", StringComparison.OrdinalIgnoreCase)) continue;
+            var value = arg["--lang=".Length..];
+            if (value.Equals("en", StringComparison.OrdinalIgnoreCase)) return AppLanguage.English;
+            if (value.Equals("id", StringComparison.OrdinalIgnoreCase)) return AppLanguage.Indonesian;
+            Log.Write($"Ignoring {arg} (expected --lang=en or --lang=id)");
+        }
+        return null;
+    }
+
+    private void ApplyLanguage() => Loc.Instance.Language = _langOverride ?? _settings.ResolveLanguage();
+
+    /// <summary>
+    /// Settings for the schedulers, whose reminder copy follows SelaSettings.ResolveLanguage():
+    /// pinned to the active UI language so --lang and the notch agree. A copy, never saved.
+    /// </summary>
+    private SelaSettings SettingsInUiLanguage()
+    {
+        if (_settings.Language == Loc.Instance.Language) return _settings;
+        var copy = Clone(_settings);
+        copy.Language = Loc.Instance.Language;
+        return copy;
+    }
+
+    private void OnLanguageChanged()
+    {
+        _tray?.SetNextPrayer(_state.Next);
+        if (_mock) { _state.Hadith = MockData.Hadith(_day); return; }
+        if (_hadithBusy) _hadithReloadPending = true; // the running load finishes in the old language
+        else _ = LoadHadithAsync();
     }
 
     private AgendaService CreateAgenda()
@@ -367,13 +418,18 @@ public partial class App : Application, IAppCommands
         {
             await EnsureScheduleAsync();
             CheckDayChanged();
+            // --mock is for demos and screenshots: no automatic cards, only the explicit
+            // --demo / --test-* flags show reminders (otherwise a sample habit or hadith card
+            // pops up at startup and covers whatever is being captured).
+            if (_mock) return;
             var now = DateTime.Now;
             // Without a schedule, still deliver meeting reminders via an empty prayer list.
             var today = _today ?? new DaySchedule(DateOnly.FromDateTime(now), _settings.GetCity(), Array.Empty<PrayerTime>());
-            foreach (var reminder in _scheduler.Due(now, today, _events, _settings))
+            var settings = SettingsInUiLanguage();
+            foreach (var reminder in _scheduler.Due(now, today, _events, settings))
                 Deliver(reminder);
             if (_today is not null && _today.Date == DateOnly.FromDateTime(now))
-                foreach (var reminder in _habitScheduler.Due(now, _today, _settings, _tracker))
+                foreach (var reminder in _habitScheduler.Due(now, _today, settings, _tracker))
                     Deliver(reminder);
             MaybeShowHadithCard(now);
         }
@@ -426,10 +482,12 @@ public partial class App : Application, IAppCommands
         if (_mock) { _state.Hadith = MockData.Hadith(_day); return; }
         if (_hadithService is not { } service || _hadithBusy) return;
         _hadithBusy = true;
+        _hadithReloadPending = false;
         _state.HadithLoading = true;
         try
         {
-            var hadith = await Task.Run(() => service.GetTodayAsync(_shutdown.Token));
+            var language = Loc.Instance.Language;
+            var hadith = await Task.Run(() => service.GetTodayAsync(_shutdown.Token, language));
             if (hadith is not null || _state.Hadith?.Date != _day) _state.Hadith = hadith;
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested) { }
@@ -442,6 +500,7 @@ public partial class App : Application, IAppCommands
             _state.HadithLoading = false;
             _hadithBusy = false;
         }
+        if (_hadithReloadPending && !_shutdown.IsCancellationRequested) _ = LoadHadithAsync();
     }
 
     /// <summary>Shows "Hadits hari ini" once a day, from Subuh+30m (07:00 without a schedule).</summary>
@@ -463,7 +522,7 @@ public partial class App : Application, IAppCommands
     }
 
     private void DeliverHadith(Hadith hadith, DateTime now) =>
-        Deliver(new Reminder($"hadith|{now:yyyyMMdd}", ReminderKind.Hadith, hadith.Title, hadith.Indonesian,
+        Deliver(new Reminder($"hadith|{now:yyyyMMdd}", ReminderKind.Hadith, hadith.Title, hadith.Translation,
             null, null, now));
 
     private async Task EnsureScheduleAsync()
@@ -471,15 +530,17 @@ public partial class App : Application, IAppCommands
         if (_mock) return; // fixed schedule set by LoadMockData
         var date = DateOnly.FromDateTime(DateTime.Now);
         var city = _settings.GetCity();
-        var key = (date, city.Id);
+        var key = ScheduleKey(date, city);
         if (_scheduleBusy || (key == _scheduleKey && _today is not null && _tomorrow is not null)) return;
 
         _scheduleBusy = true;
         try
         {
-            var today = await _prayers.GetDayAsync(city, date, _shutdown.Token);
-            var tomorrow = await _prayers.GetDayAsync(city, date.AddDays(1), _shutdown.Token);
-            if (_settings.GetCity().Id != city.Id) return; // city changed meanwhile; next tick reloads
+            var calc = _settings.GetPrayerCalc();
+            var today = await _prayers.GetDayAsync(city, date, _shutdown.Token, calc);
+            var tomorrow = await _prayers.GetDayAsync(city, date.AddDays(1), _shutdown.Token, calc);
+            // City or calculation method changed meanwhile; next tick reloads.
+            if (ScheduleKey(date, _settings.GetCity()) != key) return;
 
             _today = today;
             _tomorrow = tomorrow;
@@ -488,7 +549,7 @@ public partial class App : Application, IAppCommands
             _state.ScheduleAvailable = today is not null;
             _state.City = today?.City ?? city;
             ClockTick();
-            _ = PrefetchAsync(city);
+            _ = PrefetchAsync(city, calc);
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested) { }
         catch (Exception ex)
@@ -502,9 +563,13 @@ public partial class App : Application, IAppCommands
         }
     }
 
-    private async Task PrefetchAsync(City city)
+    /// <summary>Cache key of the loaded schedule: a new day, place or calculation method forces a reload.</summary>
+    private (DateOnly, string, int?, bool) ScheduleKey(DateOnly date, City city) =>
+        (date, city.Id, _settings.PrayerMethod, _settings.AsrHanafi);
+
+    private async Task PrefetchAsync(City city, PrayerCalc calc)
     {
-        try { await _prayers.PrefetchAsync(city, _shutdown.Token); }
+        try { await _prayers.PrefetchAsync(city, _shutdown.Token, calc); }
         catch (Exception ex) when (ex is not OperationCanceledException) { Log.Error("Prefetch", ex); }
         catch (OperationCanceledException) { }
     }
@@ -549,12 +614,12 @@ public partial class App : Application, IAppCommands
 
     // ---- demo / test ----
 
-    /// <summary>--mock: fixed Jakarta schedule (Ashar in 25 min) and three fake events today.</summary>
-    private void LoadMockData()
+    /// <summary>--mock: fixed Jakarta (or --mock-world: London) schedule (Ashar in 25 min) and three fake events today.</summary>
+    private void LoadMockData(City? city)
     {
         var start = DateTime.Now;
-        (_today, _tomorrow) = MockData.Schedule(start);
-        _scheduleKey = (_today.Date, _today.City.Id);
+        (_today, _tomorrow) = MockData.Schedule(start, city);
+        _scheduleKey = ScheduleKey(_today.Date, _today.City);
         _events = MockData.Agenda(start);
         _state.City = _today.City;
         _state.Today = _today;
@@ -571,11 +636,13 @@ public partial class App : Application, IAppCommands
         if (reminder is { Kind: ReminderKind.PrayerNow, Prayer: { } p }) _adhan.PlayFor(p, _settings);
     }
 
+    private static string AsharName => Names.Prayer(Prayer.Ashar, Loc.Instance.Language);
+
     private void TestNotify()
     {
         var now = DateTime.Now;
-        Deliver(new Reminder($"test|{Guid.NewGuid():N}", ReminderKind.PrayerNow, "Waktu Ashar",
-            $"Sudah masuk waktu Ashar untuk {_state.City.DisplayName}", now.ToString("HH:mm"), null, now, Prayer.Ashar));
+        Deliver(new Reminder($"test|{Guid.NewGuid():N}", ReminderKind.PrayerNow, Loc.F("Shell_PrayerNowTitle", AsharName),
+            Loc.F("Shell_PrayerNowBody", AsharName, _state.City.DisplayName), now.ToString("HH:mm"), null, now, Prayer.Ashar));
     }
 
     private void TestAdhan()
@@ -585,21 +652,27 @@ public partial class App : Application, IAppCommands
         settings.AdhanMuted = false;
         settings.AdhanPrayers ??= new();
         settings.AdhanPrayers[Prayer.Dzuhur] = true;
+        // Show the prayer-time card too, so the test looks like the real moment (card + Stop button).
+        var now = DateTime.Now;
+        var name = Names.Prayer(Prayer.Dzuhur, Loc.Instance.Language);
+        _notch.ShowReminder(new Reminder($"test-adhan|{Guid.NewGuid():N}", ReminderKind.PrayerNow,
+            Loc.F("Shell_PrayerNowTitle", name), Loc.F("Shell_PrayerNowBody", name, _state.City.DisplayName),
+            now.ToString("HH:mm"), null, now, Prayer.Dzuhur));
         _adhan.PlayFor(Prayer.Dzuhur, settings);
     }
 
     private void TestHabit()
     {
         var now = DateTime.Now;
-        Deliver(new Reminder($"test-habit|{Guid.NewGuid():N}", ReminderKind.Habit, "Sudah sholawat hari ini?",
-            "Luangkan sebentar untuk bersholawat", null, null, now, Habit: Habit.Sholawat));
+        Deliver(new Reminder($"test-habit|{Guid.NewGuid():N}", ReminderKind.Habit, Loc.T("Shell_TestHabitTitle"),
+            Loc.T("Shell_TestHabitBody"), null, null, now, Habit: Habit.Sholawat));
     }
 
     private void TestHadith()
     {
         var now = DateTime.Now;
         var hadith = _state.Hadith ?? MockData.Hadith(DateOnly.FromDateTime(now));
-        Deliver(new Reminder($"test-hadith|{Guid.NewGuid():N}", ReminderKind.Hadith, hadith.Title, hadith.Indonesian,
+        Deliver(new Reminder($"test-hadith|{Guid.NewGuid():N}", ReminderKind.Hadith, hadith.Title, hadith.Translation,
             null, null, now));
     }
 
@@ -615,13 +688,13 @@ public partial class App : Application, IAppCommands
         var now = DateTime.Now;
         string id = Guid.NewGuid().ToString("N");
         var soon = now.AddMinutes(10);
-        _notch.ShowReminder(new Reminder($"demo|soon|{id}", ReminderKind.PrayerSoon, "10 menit lagi Ashar",
-            "Bersiap untuk sholat Ashar", soon.ToString("HH:mm"), null, now));
-        Deliver(new Reminder($"demo|now|{id}", ReminderKind.PrayerNow, "Waktu Ashar",
-            $"Sudah masuk waktu Ashar untuk {_state.City.DisplayName}", now.ToString("HH:mm"), null, now.AddSeconds(1), Prayer.Ashar));
+        _notch.ShowReminder(new Reminder($"demo|soon|{id}", ReminderKind.PrayerSoon, Loc.F("Shell_DemoSoonTitle", AsharName),
+            Loc.F("Shell_DemoSoonBody", AsharName), soon.ToString("HH:mm"), null, now));
+        Deliver(new Reminder($"demo|now|{id}", ReminderKind.PrayerNow, Loc.F("Shell_PrayerNowTitle", AsharName),
+            Loc.F("Shell_PrayerNowBody", AsharName, _state.City.DisplayName), now.ToString("HH:mm"), null, now.AddSeconds(1), Prayer.Ashar));
         var start = now.AddMinutes(5);
         _notch.ShowReminder(new Reminder($"demo|meeting|{id}", ReminderKind.Meeting, "Weekly sync",
-            $"{start:HH:mm}–{start.AddMinutes(30):HH:mm} · mulai 5 menit lagi · Microsoft Teams", start.ToString("HH:mm"),
+            Loc.F("Shell_DemoMeetingBody", start.ToString("HH:mm"), start.AddMinutes(30).ToString("HH:mm")), start.ToString("HH:mm"),
             "https://teams.microsoft.com/l/meetup-join/demo", now.AddSeconds(2)));
     });
 }

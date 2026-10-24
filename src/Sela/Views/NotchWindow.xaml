@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:n="clr-namespace:Sela.Views.Notch"
+        xmlns:l="clr-namespace:Sela.Localization"
         Title="Sela" Width="520" Height="480"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent" ResizeMode="NoResize"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False" Foreground="#F5F5F7"
@@ -263,7 +264,7 @@
               </TextBlock>
             </DockPanel>
           </StackPanel>
-          <Button x:Name="Join" Grid.Column="3" Style="{StaticResource PillButton}" Padding="14,5" Content="Join"
+          <Button x:Name="Join" Grid.Column="3" Style="{StaticResource PillButton}" Padding="14,5" Content="{Binding [Notch_Join], Source={x:Static l:Loc.Instance}}"
                   Tag="{Binding JoinUrl}" Click="AgendaJoin_Click" Visibility="Collapsed"
                   AutomationProperties.Name="{Binding Subject, StringFormat='Join {0}'}"/>
         </Grid>
@@ -379,10 +380,10 @@
                 </Grid.RowDefinitions>
                 <Button x:Name="GlanceStop" Grid.Row="3" Style="{StaticResource OutlineButton}" Margin="0,6,0,0" Padding="0,5"
                         HorizontalAlignment="Stretch" Visibility="Collapsed" Click="StopAdhan_Click"
-                        ToolTip="Hentikan suara adzan" AutomationProperties.Name="Hentikan adzan">
+                        ToolTip="{Binding [Notch_StopAdhanHint], Source={x:Static l:Loc.Instance}}" AutomationProperties.Name="{Binding [Notch_StopAdhan], Source={x:Static l:Loc.Instance}}">
                   <StackPanel Orientation="Horizontal">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE198;" FontSize="12" Foreground="{StaticResource Sholat}" Margin="0,0,7,0"/>
-                    <TextBlock Text="Hentikan adzan" Foreground="{StaticResource Sholat}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding [Notch_StopAdhan], Source={x:Static l:Loc.Instance}}" Foreground="{StaticResource Sholat}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Button>
                 <Grid>
@@ -394,7 +395,7 @@
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE708;" FontSize="15" Foreground="{StaticResource Sholat}"/>
                   </Grid>
                   <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="GlanceLabel" Text="Sholat berikutnya" FontSize="11" Foreground="{StaticResource TextTertiary}"/>
+                    <TextBlock x:Name="GlanceLabel" Text="{Binding [Notch_NextPrayer], Source={x:Static l:Loc.Instance}}" FontSize="11" Foreground="{StaticResource TextTertiary}"/>
                     <TextBlock FontFamily="{StaticResource DisplayFont}" Typography.NumeralAlignment="Tabular">
                       <Run x:Name="GlancePrayer" Text="Sela" FontSize="15.5" FontWeight="SemiBold"/>
                       <Run x:Name="GlancePrayerTime" Text="" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
@@ -416,9 +417,9 @@
                              TextTrimming="CharacterEllipsis"/>
                   <TextBlock x:Name="GlanceMeetingMeta" Grid.Column="2" FontSize="11.5" VerticalAlignment="Center"
                              Foreground="{StaticResource TextSecondary}" Typography.NumeralAlignment="Tabular"><Run x:Name="GlanceMeetingWhen"/><Run x:Name="GlanceMeetingSep" Foreground="{StaticResource TextTertiary}"/><Run x:Name="GlanceMeetingSrc" FontWeight="SemiBold"/></TextBlock>
-                  <Button x:Name="GlanceJoin" Grid.Column="3" Style="{StaticResource PillButton}" Content="Join" Padding="12,3"
+                  <Button x:Name="GlanceJoin" Grid.Column="3" Style="{StaticResource PillButton}" Content="{Binding [Notch_Join], Source={x:Static l:Loc.Instance}}" Padding="12,3"
                           FontSize="11.5" Margin="10,0,0,0" Visibility="Collapsed" Focusable="False" Click="GlanceJoin_Click"
-                          ToolTip="Buka link meeting"/>
+                          ToolTip="{Binding [Notch_JoinHint], Source={x:Static l:Loc.Instance}}"/>
                 </Grid>
               </Grid>
             </Grid>
@@ -463,13 +464,13 @@
                         </Border.Effect>
                         <Border.RenderTransform><TranslateTransform x:Name="SegmentShift"/></Border.RenderTransform>
                       </Border>
-                      <RadioButton x:Name="TabSholat" Style="{StaticResource Segment}" FontSize="12" Content="Sholat" IsChecked="True" Checked="Tab_Checked"/>
-                      <RadioButton x:Name="TabAgenda" Grid.Column="1" Style="{StaticResource Segment}" FontSize="12" Content="Agenda" Checked="Tab_Checked"/>
-                      <RadioButton x:Name="TabHadits" Grid.Column="2" Style="{StaticResource Segment}" FontSize="12" Content="Hadits" Checked="Tab_Checked"/>
+                      <RadioButton x:Name="TabSholat" Style="{StaticResource Segment}" FontSize="12" Content="{Binding [Notch_TabSholat], Source={x:Static l:Loc.Instance}}" IsChecked="True" Checked="Tab_Checked"/>
+                      <RadioButton x:Name="TabAgenda" Grid.Column="1" Style="{StaticResource Segment}" FontSize="12" Content="{Binding [Notch_TabAgenda], Source={x:Static l:Loc.Instance}}" Checked="Tab_Checked"/>
+                      <RadioButton x:Name="TabHadits" Grid.Column="2" Style="{StaticResource Segment}" FontSize="12" Content="{Binding [Notch_TabHadits], Source={x:Static l:Loc.Instance}}" Checked="Tab_Checked"/>
                     </Grid>
                   </Border>
                   <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Right" Margin="0,0,-4,0" Click="Settings_Click"
-                          ToolTip="Pengaturan" AutomationProperties.Name="Pengaturan">
+                          ToolTip="{Binding [Notch_Settings], Source={x:Static l:Loc.Instance}}" AutomationProperties.Name="{Binding [Notch_Settings], Source={x:Static l:Loc.Instance}}">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" FontSize="13"/>
                   </Button>
                 </Grid>
@@ -484,7 +485,7 @@
                       <StackPanel>
                         <TextBlock x:Name="CityText" FontSize="17" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"
                                    TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="GregorianText" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
+                        <TextBlock x:Name="GregorianText" FontSize="12" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
                       </StackPanel>
                       <TextBlock x:Name="HijriText" Grid.Column="1" FontSize="12" Foreground="{StaticResource Sholat}" Opacity="0.85"
                                  VerticalAlignment="Bottom" Margin="12,0,0,0"/>
@@ -511,11 +512,11 @@
                       <Ellipse Fill="{StaticResource SurfaceRaised}"/>
                       <TextBlock Style="{StaticResource Icon}" Text="&#xEB55;" FontSize="20" Foreground="{StaticResource TextSecondary}"/>
                     </Grid>
-                    <TextBlock Text="Jadwal belum tersedia" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
-                    <TextBlock Text="Cek koneksi internet" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
+                    <TextBlock Text="{Binding [Notch_ScheduleUnavailable], Source={x:Static l:Loc.Instance}}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                    <TextBlock Text="{Binding [Notch_CheckInternet], Source={x:Static l:Loc.Instance}}" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
                                HorizontalAlignment="Center" Margin="0,3,0,0"/>
                     <Button Style="{StaticResource PillButton}" Background="{StaticResource Sholat}" Foreground="#000000"
-                            Content="Coba lagi" HorizontalAlignment="Center" Margin="0,16,0,0" Click="Retry_Click"/>
+                            Content="{Binding [Notch_Retry], Source={x:Static l:Loc.Instance}}" HorizontalAlignment="Center" Margin="0,16,0,0" Click="Retry_Click"/>
                   </StackPanel>
                 </Grid>
 
@@ -527,7 +528,7 @@
                       <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                       <StackPanel>
-                        <TextBlock Text="Hari ini" FontSize="17" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"/>
+                        <TextBlock Text="{Binding [Notch_Today], Source={x:Static l:Loc.Instance}}" FontSize="17" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"/>
                         <TextBlock x:Name="AgendaDate" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
                       </StackPanel>
                       <TextBlock x:Name="AgendaCount" Grid.Column="1" FontSize="12" Foreground="{StaticResource Meeting}"
@@ -552,9 +553,9 @@
                       <TextBlock x:Name="AgendaEmptyIcon" Style="{StaticResource Icon}" Text="&#xE787;" FontSize="20"
                                  Foreground="{StaticResource Meeting}"/>
                     </Grid>
-                    <TextBlock x:Name="AgendaEmptyTitle" Text="Tidak ada agenda hari ini" FontSize="15" FontWeight="SemiBold"
+                    <TextBlock x:Name="AgendaEmptyTitle" Text="{Binding [Notch_NoAgenda], Source={x:Static l:Loc.Instance}}" FontSize="15" FontWeight="SemiBold"
                                HorizontalAlignment="Center" Margin="0,14,0,0"/>
-                    <TextBlock x:Name="AgendaEmptyBody" Text="Waktunya fokus" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
+                    <TextBlock x:Name="AgendaEmptyBody" Text="{Binding [Notch_TimeToFocus], Source={x:Static l:Loc.Instance}}" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
                                HorizontalAlignment="Center" Margin="0,3,0,0"/>
                   </StackPanel>
                 </Grid>
@@ -587,7 +588,7 @@
                                    LineStackingStrategy="BlockLineHeight" Foreground="{StaticResource TextPrimary}"
                                    xml:lang="ar"/>
                         <Rectangle Height="1" Fill="{StaticResource Hairline}" Margin="0,12,0,12" Width="48" HorizontalAlignment="Left"/>
-                        <TextBlock x:Name="HadithIndonesian" TextWrapping="Wrap" FontSize="13.5" LineHeight="21"
+                        <TextBlock x:Name="HadithIndonesian" FlowDirection="LeftToRight" TextWrapping="Wrap" FontSize="13.5" LineHeight="21"
                                    Foreground="#D6D6DB" MaxWidth="300" HorizontalAlignment="Left"/>
                       </StackPanel>
                     </ScrollViewer>
@@ -599,9 +600,9 @@
                       <TextBlock x:Name="HaditsEmptyIcon" Style="{StaticResource Icon}" Text="&#xE82D;" FontSize="20"
                                  Foreground="{StaticResource Sholat}"/>
                     </Grid>
-                    <TextBlock x:Name="HaditsEmptyTitle" Text="Hadits belum tersedia" FontSize="15" FontWeight="SemiBold"
+                    <TextBlock x:Name="HaditsEmptyTitle" Text="{Binding [Notch_HadithUnavailable], Source={x:Static l:Loc.Instance}}" FontSize="15" FontWeight="SemiBold"
                                HorizontalAlignment="Center" Margin="0,14,0,0"/>
-                    <TextBlock x:Name="HaditsEmptyBody" Text="Cek koneksi internet" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
+                    <TextBlock x:Name="HaditsEmptyBody" Text="{Binding [Notch_CheckInternet], Source={x:Static l:Loc.Instance}}" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
                                HorizontalAlignment="Center" Margin="0,3,0,0"/>
                   </StackPanel>
 
@@ -609,7 +610,7 @@
                   <Grid x:Name="HabitStrip" Grid.Row="1" Margin="4,8,4,0">
                     <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <TextBlock Text="Ibadah hari ini" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="0,0,0,6"/>
+                    <TextBlock Text="{Binding [Notch_HabitsToday], Source={x:Static l:Loc.Instance}}" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="0,0,0,6"/>
                     <!-- equal columns for however many habits are enabled; -3 cancels the tiles' outer 3 px gap -->
                     <ItemsControl x:Name="HabitList" Grid.Row="1" Margin="-3,0" Focusable="False" IsTabStop="False">
                       <ItemsControl.ItemsPanel>
@@ -665,28 +666,28 @@
                 </StackPanel>
                 <TextBlock x:Name="ReminderBadge" Grid.Column="2" VerticalAlignment="Center" FontFamily="{StaticResource DisplayFont}"
                            FontWeight="SemiBold" FontSize="20" Typography.NumeralAlignment="Tabular"/>
-                <Button x:Name="ReminderJoin" Grid.Column="2" Style="{StaticResource PillButton}" Content="Join" Visibility="Collapsed"
-                        Focusable="False" Click="ReminderJoin_Click" ToolTip="Buka link meeting"/>
+                <Button x:Name="ReminderJoin" Grid.Column="2" Style="{StaticResource PillButton}" Content="{Binding [Notch_Join], Source={x:Static l:Loc.Instance}}" Visibility="Collapsed"
+                        Focusable="False" Click="ReminderJoin_Click" ToolTip="{Binding [Notch_JoinHint], Source={x:Static l:Loc.Instance}}"/>
                 <Button x:Name="ReminderStop" Grid.Column="2" Style="{StaticResource OutlineButton}" Visibility="Collapsed"
-                        Click="StopAdhan_Click" ToolTip="Hentikan suara adzan" AutomationProperties.Name="Hentikan adzan">
+                        Click="StopAdhan_Click" ToolTip="{Binding [Notch_StopAdhanHint], Source={x:Static l:Loc.Instance}}" AutomationProperties.Name="{Binding [Notch_StopAdhan], Source={x:Static l:Loc.Instance}}">
                   <StackPanel Orientation="Horizontal">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE198;" FontSize="12" Foreground="{StaticResource Sholat}" Margin="0,0,6,0"/>
-                    <TextBlock Text="Hentikan" Foreground="{StaticResource Sholat}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding [Notch_Stop], Source={x:Static l:Loc.Instance}}" Foreground="{StaticResource Sholat}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Button>
                 <!-- habit check-in: Sudah / Nanti -->
                 <StackPanel x:Name="ReminderHabit" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                             Visibility="Collapsed">
                   <Button Style="{StaticResource PillButton}" Background="{StaticResource Sholat}" Foreground="#000000"
-                          Padding="13,5" FontSize="12" Content="Sudah" Focusable="False" Click="HabitDone_Click"
-                          AutomationProperties.Name="Sudah"/>
+                          Padding="13,5" FontSize="12" Content="{Binding [Notch_Done], Source={x:Static l:Loc.Instance}}" Focusable="False" Click="HabitDone_Click"
+                          AutomationProperties.Name="{Binding [Notch_Done], Source={x:Static l:Loc.Instance}}"/>
                   <Button Style="{StaticResource OutlineButton}" Foreground="{StaticResource TextSecondary}" BorderBrush="#3A3A40"
-                          Padding="12,5" Margin="6,0,0,0" Content="Nanti" Click="HabitSnooze_Click"
-                          ToolTip="Ingatkan lagi 30 menit lagi" AutomationProperties.Name="Nanti"/>
+                          Padding="12,5" Margin="6,0,0,0" Content="{Binding [Notch_Later], Source={x:Static l:Loc.Instance}}" Click="HabitSnooze_Click"
+                          ToolTip="{Binding [Notch_LaterHint], Source={x:Static l:Loc.Instance}}" AutomationProperties.Name="{Binding [Notch_Later], Source={x:Static l:Loc.Instance}}"/>
                 </StackPanel>
                 <Button x:Name="ReminderRead" Grid.Column="2" Style="{StaticResource PillButton}" Background="{StaticResource Sholat}"
-                        Foreground="#000000" Content="Baca" Visibility="Collapsed" Focusable="False" Click="HadithRead_Click"
-                        ToolTip="Buka hadits lengkap"/>
+                        Foreground="#000000" Content="{Binding [Notch_Read], Source={x:Static l:Loc.Instance}}" Visibility="Collapsed" Focusable="False" Click="HadithRead_Click"
+                        ToolTip="{Binding [Notch_ReadHint], Source={x:Static l:Loc.Instance}}"/>
               </Grid>
               <Rectangle x:Name="ReminderTrack" VerticalAlignment="Bottom" Height="3" Margin="30,0,30,10" RadiusX="1.5" RadiusY="1.5"
                          Fill="#1C1C20"/>

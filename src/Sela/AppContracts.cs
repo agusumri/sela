@@ -112,5 +112,8 @@ public interface IAdhanPlayer
     void Stop();
 }
 
-/// <summary>Searches cities for the settings picker (wraps MyQuranClient.SearchCitiesAsync).</summary>
+/// <summary>
+/// Searches places for the settings picker (wraps LocationSearch.SearchAsync in the current UI language):
+/// Indonesian Kemenag cities and worldwide places (<see cref="City.IsWorld"/>).
+/// </summary>
 public delegate Task<IReadOnlyList<City>> CitySearch(string query, CancellationToken ct);

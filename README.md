@@ -1,104 +1,127 @@
 <p align="center">
-  <img src="docs/images/hero.png" alt="Sela: notch hitam di tengah atas layar berisi maskot bulan sabit dan countdown sholat, di sebelah panel jadwal sholat" width="100%">
+  <b>English</b> · <a href="README.id.md">Bahasa Indonesia</a>
+</p>
+
+<p align="center">
+  <img src="docs/images/en/hero.png" alt="Sela: a black notch at the top center of the screen with a crescent mascot and a prayer countdown, next to the prayer schedule panel" width="100%">
 </p>
 
 <h1 align="center">Sela</h1>
 
 <p align="center">
-  Jeda sejenak di sela kesibukan.<br>
-  Notch kecil di atas layar Windows untuk jadwal sholat, adzan, dan pengingat meeting.
+  A short pause between everything else.<br>
+  A small notch at the top of your Windows screen for prayer times, the adhan, daily reminders, and meetings.
 </p>
 
 <p align="center">
-  <a href="https://github.com/agusumri/sela/releases/latest"><img alt="Rilis terbaru" src="https://img.shields.io/github/v/release/agusumri/sela?color=3DDC97&label=unduh"></a>
-  <a href="LICENSE"><img alt="Lisensi MIT" src="https://img.shields.io/badge/lisensi-MIT-3DDC97"></a>
-  <img alt="Windows 10 dan 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-4C9BFF">
+  <a href="https://github.com/agusumri/sela/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/agusumri/sela?color=3DDC97&label=download"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-3DDC97"></a>
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-4C9BFF">
   <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-4C9BFF">
 </p>
 
-Sela duduk di tengah atas layar sebagai pill hitam kecil. Pill itu menampilkan sholat berikutnya dan sisa waktunya, ditemani maskot bulan sabit yang ikut berubah sesuai waktu. Arahkan kursor untuk melihat ringkasan, klik untuk membuka jadwal lengkap dan agenda hari ini.
+Sela sits at the top of your screen as a small black pill. It shows the next prayer and a live countdown, with a crescent mascot that changes with the time of day. Hover to see a summary; click to open the full schedule, today's agenda, and a daily hadith.
 
-## Fitur
+## Features
 
-- **Jadwal sholat lengkap** dari data Kemenag RI (lewat [api.myquran.com](https://api.myquran.com)): Imsak, Subuh, Terbit, Dhuha, Dzuhur, Ashar, Maghrib, dan Isya, untuk 500+ kota dan kabupaten di Indonesia.
-- **Pengingat sholat** beberapa menit sebelum waktunya dan saat masuk waktu.
-- **Adzan** saat masuk waktu, dengan pilihan per waktu, volume, mode bisu, dan file adzan sendiri (termasuk khusus Subuh).
-- **Agenda meeting** dari Outlook (aplikasi klasik) dan Google Calendar, dengan tombol **Join** untuk Teams, Zoom, Google Meet, dan Webex.
-- **Maskot yang hidup**: fajar, siang, sore, dan malam punya tampilan sendiri, bergerak pelan, dan melirik ke arah kursor.
-- **Tetap jalan saat offline**: jadwal disimpan per bulan di perangkat.
-- **Sopan terhadap layar**: notch disembunyikan saat aplikasi layar penuh berjalan, tidak mengambil fokus, dan tidak muncul di taskbar.
+- **Prayer times anywhere**: Indonesian cities use official Kemenag RI times (through [api.myquran.com](https://api.myquran.com)); every other city uses [Aladhan](https://aladhan.com) with the calculation method of your choice, such as Muslim World League, ISNA, or Umm al-Qura, and an optional Hanafi Asr.
+- **Prayer reminders** a few minutes before each prayer and when it begins, with a countdown in hours, minutes, and seconds.
+- **Adhan** when a prayer begins, with per-prayer choices, volume, mute, and your own audio files (including a separate one for Fajr).
+- **Dhikr and salawat check-ins**: Sela asks once after Fajr, Dhuhr, and Asr. Answer **Done** or **Later**.
+- **Daily hadith** from the Forty Hadith of an-Nawawi, in Arabic with an English or Indonesian translation.
+- **Meetings** from Outlook (classic desktop app) and Google Calendar, each marked with its source, with a **Join** button for Teams, Zoom, Google Meet, and Webex.
+- **English and Indonesian**: follows your Windows language by default, and you can switch at any time in Settings.
+- **Place it where you like**: drag the notch along the top or bottom edge of the screen. Sela remembers the spot.
+- **A living mascot** with its own look for dawn, day, dusk, and night. It moves slowly and glances toward your cursor.
+- **Works offline**: schedules and hadith are cached on your PC.
+- **Stays out of the way**: hides during full-screen apps, never takes focus, and has no taskbar button.
 
-## Tampilan
+## Screenshots
 
-| Diam (malam) | Diam (siang) |
-| --- | --- |
-| <img src="docs/images/idle-night.png" alt="Pill notch malam: bulan sabit dengan bintang, teks Ashar dan countdown" width="420"> | <img src="docs/images/idle-day.png" alt="Pill notch siang: matahari kecil dengan sinar, teks sholat berikutnya dan countdown" width="420"> |
+The screenshots use sample data for London.
 
-| Jadwal sholat | Agenda hari ini |
-| --- | --- |
-| <img src="docs/images/panel-sholat.png" alt="Panel jadwal sholat dengan garis waktu dan sholat berikutnya yang disorot hijau" width="420"> | <img src="docs/images/panel-agenda.png" alt="Panel agenda dengan kartu meeting dari Outlook dan Google beserta tombol Join" width="420"> |
+| The notch through the day |
+| --- |
+| <img src="docs/images/en/idle-dawn.png" alt="Dawn: lavender crescent, next prayer and a countdown with seconds" width="300"> <img src="docs/images/en/idle-day.png" alt="Day: small sun with rays, next prayer and countdown" width="300"> <img src="docs/images/en/idle-dusk.png" alt="Dusk: amber crescent, next prayer and countdown" width="300"> <img src="docs/images/en/idle-night.png" alt="Night: crescent with stars, next prayer and countdown" width="300"> |
 
-| Masuk waktu sholat | Pengaturan |
-| --- | --- |
-| <img src="docs/images/reminder-adzan.png" alt="Kartu pengingat masuk waktu sholat dengan tombol Hentikan adzan" width="420"> | <img src="docs/images/settings.png" alt="Jendela pengaturan bertema gelap dengan bagian Lokasi dan Sholat" width="420"> |
+| Prayer schedule | Today's agenda | Daily hadith |
+| --- | --- | --- |
+| <img src="docs/images/en/panel-prayer.png" alt="Prayer tab: London schedule with a timeline and the next prayer highlighted in green" width="280"> | <img src="docs/images/en/panel-agenda.png" alt="Agenda tab: meeting cards marked Outlook or Google, with Join buttons" width="280"> | <img src="docs/images/en/panel-hadith.png" alt="Hadith tab: Forty Hadith of an-Nawawi in Arabic with an English translation and today's worship check-ins" width="280"> |
 
-## Unduh dan pasang
+| Prayer time | Dhikr check-in | Hadith of the day |
+| --- | --- | --- |
+| <img src="docs/images/en/reminder-adhan.png" alt="Prayer time card with a Stop button for the adhan" width="280"> | <img src="docs/images/en/reminder-habit.png" alt="Check-in card asking about salawat, with Done and Later buttons" width="280"> | <img src="docs/images/en/reminder-hadith.png" alt="Daily hadith card with a short preview and a Read button" width="280"> |
 
-Sela berjalan di Windows 10 atau 11 (64-bit). Kamu tidak perlu memasang .NET.
+<p align="center">
+  <img src="docs/images/en/settings.png" alt="Settings window in English with Language, Location and Prayer sections" width="420">
+</p>
 
-1. Buka halaman [Rilis terbaru](https://github.com/agusumri/sela/releases/latest).
-2. Unduh salah satu file berikut:
-   - `Sela-Setup-VERSI.exe`: installer. Sela dipasang untuk akun kamu saja, tanpa hak admin, dan muncul di Start Menu.
-   - `Sela-VERSI-portable.exe`: satu file yang langsung dijalankan tanpa dipasang.
-3. Jalankan file tersebut. Ikon Sela muncul di tray dan notch muncul di tengah atas layar.
+## Download and install
+
+Sela runs on Windows 10 or 11 (64-bit). You don't need to install .NET.
+
+1. Open the [latest release](https://github.com/agusumri/sela/releases/latest).
+2. Download one of these files:
+   - `Sela-Setup-VERSION.exe`: the installer. It installs Sela for your account only, without admin rights, and adds it to the Start menu.
+   - `Sela-VERSION-portable.exe`: a single file you run directly, without installing.
+3. Run the file. The Sela icon appears in the notification area and the notch appears at the top of the screen.
 
 > [!NOTE]
-> File rilis belum ditandatangani secara digital, jadi Windows SmartScreen mungkin menampilkan peringatan. Klik **Info lainnya**, lalu **Tetap jalankan**. Kamu bisa mencocokkan file dengan `SHA256SUMS.txt` di halaman rilis.
+> Release files aren't digitally signed yet, so Windows SmartScreen might show a warning. Click **More info**, then **Run anyway**. You can check the files against `SHA256SUMS.txt` on the release page.
 
-## Mulai pakai
+## Get started
 
-1. Klik kanan ikon Sela di tray, lalu klik **Pengaturan**.
-2. Di **Lokasi**, ketik nama kota atau kabupaten kamu, lalu pilih dari daftar.
-3. Di **Meeting**, atur sumber agenda:
-   - **Outlook**: nyalakan **Outlook (aplikasi klasik)**. Sela membaca kalender dari Outlook yang sedang terbuka, tanpa mengubah apa pun.
-   - **Google Calendar**: buka Google Calendar di web, lalu buka **Setelan** > pilih kalender > **Integrasikan kalender**. Salin **Alamat rahasia dalam format iCal**, lalu tempel ke kolom Google Calendar di Sela.
-4. Klik **Simpan**.
+1. Right-click the Sela icon in the notification area, then click **Settings**.
+2. Under **Language**, keep **Follow Windows** or pick **English** or **Indonesia**.
+3. Under **Location**, type your city and select it from the list.
+4. Optional: for a city outside Indonesia, choose a **Calculation method** that matches your local mosque, and turn on **Asr: Hanafi method** if you follow it.
+5. Under **Meetings**, set up your calendars:
+   - **Outlook**: turn on **Outlook (classic app)**. Sela reads the calendar from the Outlook app that's open on your PC and never changes it.
+   - **Google Calendar**: open Google Calendar on the web, then go to **Settings** > select your calendar > **Integrate calendar**. Copy the **Secret address in iCal format** and paste it into the Google Calendar field in Sela.
+6. Click **Save**.
 
-Setelah itu notch langsung menampilkan sholat berikutnya. Untuk memastikan pengingat dan adzan bekerja, klik kanan ikon tray lalu klik **Tes notifikasi**.
+The notch shows the next prayer right away. To check that reminders and the adhan work, right-click the tray icon and click **Test notification**.
 
-### Cara memakai notch
+### Use the notch
 
-- **Arahkan kursor** ke pill untuk melihat sholat berikutnya dan meeting terdekat.
-- **Klik** pill untuk membuka panel **Sholat** dan **Agenda**. Tekan `Esc` atau pindahkan kursor untuk menutupnya.
-- Saat adzan berbunyi, klik **Hentikan** di kartu pengingat, atau klik **Hentikan adzan** di menu tray.
-- Untuk membisukan adzan sementara, centang **Bisukan adzan** di menu tray.
+- **Hover** over the pill to see the next prayer and your next meeting.
+- **Click** the pill to open the **Prayer**, **Agenda**, and **Hadith** tabs. Press `Esc` or move the pointer away to close it.
+- **Drag** the pill to move it left or right, or to the bottom edge of the screen. To put it back, right-click the tray icon and click **Reset notch position**.
+- When the adhan plays, click **Stop** on the reminder card, or click **Stop adhan** in the tray menu. To silence it for a while, select **Mute adhan** in the tray menu.
 
-## Privasi
+## Privacy
 
-Sela tidak punya server dan tidak mengirim data pribadi ke mana pun.
+Sela has no server and doesn't send your personal data anywhere. It only connects to:
 
-- Sela hanya menghubungi `api.myquran.com` untuk jadwal sholat dan alamat iCal Google yang kamu masukkan.
-- Kalender Outlook dibaca langsung dari aplikasi Outlook di perangkat kamu.
-- Alamat iCal Google disimpan terenkripsi dengan Windows DPAPI, jadi hanya bisa dibuka oleh akun Windows kamu.
-- Pengaturan, cache jadwal, dan log disimpan di `%LOCALAPPDATA%\Sela`. Hapus folder itu untuk menghapus semua data Sela.
+- `api.myquran.com` for Indonesian prayer times and the Indonesian hadith,
+- `api.aladhan.com` for prayer times outside Indonesia, using the coordinates of the city you picked,
+- `geocoding-api.open-meteo.com` for the city search,
+- `cdn.jsdelivr.net` for the English hadith,
+- the Google Calendar iCal address you enter.
 
-## Untuk pengembang
+Other details:
 
-Sela ditulis dengan C# dan WPF di .NET 10.
+- Outlook is read directly from the Outlook app on your PC.
+- The Google Calendar address is encrypted with Windows DPAPI, so only your Windows account can read it.
+- Settings, caches, and logs are stored in `%LOCALAPPDATA%\Sela`. Delete that folder to remove all Sela data.
 
-| Folder | Isi |
+## For developers
+
+Sela is written in C# with WPF on .NET 10.
+
+| Folder | Contents |
 | --- | --- |
-| `src/Sela.Core` | Logika tanpa UI: klien API jadwal sholat dan cache, pembaca iCal, penjadwal pengingat, penyimpanan pengaturan |
-| `src/Sela` | Aplikasi WPF: notch, maskot, jendela pengaturan, tray, pembaca Outlook, pemutar adzan |
-| `tests/Sela.Core.Tests` | Tes xUnit untuk `Sela.Core` |
-| `installer` | Skrip Inno Setup untuk installer |
-| `tools` | Skrip build rilis dan pembuat ikon |
+| `src/Sela.Core` | Logic with no UI: prayer time and hadith clients with caching, location search, iCal reader, reminder schedulers, settings storage |
+| `src/Sela` | WPF app: notch, mascot, settings window, tray, Outlook reader, adhan player, translations (`Localization/`) |
+| `tests/Sela.Core.Tests` | xUnit tests for `Sela.Core` |
+| `installer` | Inno Setup script for the installer |
+| `tools` | Release build, screenshot, and icon scripts |
 
-### Build dari source
+### Build from source
 
-Sebelum mulai, pasang [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+Before you begin, install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
-Untuk build, jalankan tes, dan membuka aplikasi, jalankan perintah berikut:
+To build, run the tests, and start the app, run the following commands:
 
 ```powershell
 dotnet build
@@ -106,42 +129,57 @@ dotnet test tests/Sela.Core.Tests
 dotnet run --project src/Sela
 ```
 
-Untuk membuat file rilis (exe portable, installer, dan `SHA256SUMS.txt`) di folder `dist`, pasang [Inno Setup 6](https://jrsoftware.org/isinfo.php), lalu jalankan:
+To create the release files (portable exe, installer, and `SHA256SUMS.txt`) in the `dist` folder, install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run:
 
 ```powershell
 ./tools/build-release.ps1
 ```
 
-### Opsi baris perintah
+### Add or change a translation
 
-Opsi berikut membantu saat mencoba tampilan atau membuat screenshot:
+All interface text lives in `src/Sela/Localization`, one file per area: `Loc.Notch.cs`, `Loc.Settings.cs`, and `Loc.Shell.cs`. Each entry holds the Indonesian and the English text for one key:
 
-| Opsi | Fungsi |
-| --- | --- |
-| `--demo` | Menampilkan contoh pengingat sholat dan meeting satu per satu |
-| `--test-notify` | Menampilkan satu contoh pengingat masuk waktu sholat |
-| `--test-adhan` | Memutar adzan Dzuhur |
-| `--settings` | Membuka pengaturan saat aplikasi mulai |
-| `--panel`, `--panel=agenda` | Membuka panel jadwal atau agenda saat aplikasi mulai |
-| `--sky=dawn`, `--sky=day`, `--sky=dusk`, `--sky=night` | Memaksa tampilan maskot untuk satu waktu |
-| `--excited` | Menampilkan maskot dalam mode menjelang sholat |
-| `--sky-tour` | Berganti ke semua tampilan maskot setiap 6 detik |
-| `--mock` | Memakai data contoh tanpa membaca kalender, pengaturan, atau registri |
-
-### Rilis
-
-Push tag versi untuk membuat rilis. GitHub Actions menjalankan tes, membuat exe portable dan installer, lalu melampirkannya ke GitHub Release:
-
-```powershell
-git tag v1.0.1
-git push origin v1.0.1
+```csharp
+["Notch_NextPrayer"] = ("Sholat berikutnya", "Next prayer"),
 ```
 
-## Kredit
+Prayer and habit names are in `src/Sela.Core/Localization.cs`. A missing key shows the key itself on screen and is logged once in `%LOCALAPPDATA%\Sela\log.txt`.
 
-- Jadwal sholat: Kemenag RI melalui [api.myquran.com](https://api.myquran.com).
-- Suara adzan bawaan: [Adhan.ogg](https://commons.wikimedia.org/wiki/File:Adhan.ogg) oleh Aishatu98, CC0 1.0. Lihat [`CREDITS.txt`](src/Sela/Assets/Audio/CREDITS.txt).
+### Command-line options
 
-## Lisensi
+These options help when you try out the interface or take screenshots:
 
-Sela dirilis dengan [lisensi MIT](LICENSE). Kamu bebas memakai, mengubah, dan membagikannya.
+| Option | What it does |
+| --- | --- |
+| `--lang=en`, `--lang=id` | Uses English or Indonesian for this session only |
+| `--mock` | Uses sample data, without reading calendars, settings, or the registry |
+| `--demo` | Shows sample prayer and meeting reminders one after another |
+| `--test-notify` | Shows one sample prayer-time reminder |
+| `--test-adhan` | Plays the Dhuhr adhan |
+| `--test-habit`, `--test-hadith` | Shows a sample check-in card or the daily hadith card |
+| `--settings` | Opens Settings at startup |
+| `--panel`, `--panel=agenda`, `--panel=hadits` | Opens the panel on the Prayer, Agenda, or Hadith tab at startup |
+| `--sky=dawn`, `--sky=day`, `--sky=dusk`, `--sky=night` | Forces the mascot's look for one time of day |
+| `--excited` | Shows the mascot in its "prayer is close" mode |
+| `--sky-tour` | Cycles through every mascot look every 6 seconds |
+
+### Release
+
+To publish a release, push a version tag. GitHub Actions runs the tests, builds the portable exe and the installer, and attaches them to a GitHub Release:
+
+```powershell
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+## Credits
+
+- Indonesian prayer times and hadith: Kemenag RI through [api.myquran.com](https://api.myquran.com).
+- Prayer times outside Indonesia: [Aladhan](https://aladhan.com).
+- City search: [Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api).
+- English and Arabic hadith text: [fawazahmed0/hadith-api](https://github.com/fawazahmed0/hadith-api) (Unlicense).
+- Bundled adhan: [Adhan.ogg](https://commons.wikimedia.org/wiki/File:Adhan.ogg) by Aishatu98, CC0 1.0. See [`CREDITS.txt`](src/Sela/Assets/Audio/CREDITS.txt).
+
+## License
+
+Sela is released under the [MIT license](LICENSE). You're free to use, change, and share it.

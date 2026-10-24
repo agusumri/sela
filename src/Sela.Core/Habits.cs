@@ -108,7 +108,7 @@ public sealed class HabitScheduler
                 _state[habit] = st = new State { NextAt = start, WindowEnd = end };
             if (st.NextAt is not { } at || now < at) continue;
 
-            due.Add(Build(habit, day, st.Count, at));
+            due.Add(Build(habit, day, st.Count, at, settings.ResolveLanguage()));
             st.NextAt = null;
         }
         return due;
@@ -122,12 +122,9 @@ public sealed class HabitScheduler
         st.NextAt = now + SnoozeLength;
     }
 
-    public static string Name(Habit habit) => habit switch
-    {
-        Habit.DzikirPagi => "Dzikir pagi",
-        Habit.DzikirPetang => "Dzikir petang",
-        _ => "Sholawat",
-    };
+    public static string Name(Habit habit) => Name(habit, AppLanguage.Indonesian);
+
+    public static string Name(Habit habit, AppLanguage language) => Names.Habit(habit, language);
 
     private static (DateTime Start, DateTime End) Window(Habit habit, DaySchedule s) => habit switch
     {
@@ -136,9 +133,14 @@ public sealed class HabitScheduler
         _ => (s[Prayer.Ashar].AddMinutes(15), s[Prayer.Maghrib]),
     };
 
-    private static Reminder Build(Habit habit, DateOnly day, int n, DateTime dueAt)
+    private static Reminder Build(Habit habit, DateOnly day, int n, DateTime dueAt, AppLanguage language)
     {
-        var (title, body) = habit switch
+        var (title, body) = language == AppLanguage.English ? habit switch
+        {
+            Habit.DzikirPagi => ("Done your morning dhikr?", "Take a moment for your morning dhikr."),
+            Habit.DzikirPetang => ("Done your evening dhikr?", "Make time for evening dhikr before Maghrib."),
+            _ => ("Sent salawat today?", "Allahumma salli 'ala Muhammad."),
+        } : habit switch
         {
             Habit.DzikirPagi => ("Sudah dzikir pagi?", "Luangkan sebentar untuk dzikir pagi."),
             Habit.DzikirPetang => ("Sudah dzikir petang?", "Sempatkan dzikir petang sebelum Maghrib."),

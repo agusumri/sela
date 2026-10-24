@@ -4,11 +4,29 @@ namespace Sela.Core;
 
 public enum Prayer { Imsak, Subuh, Terbit, Dhuha, Dzuhur, Ashar, Maghrib, Isya }
 
-/// <summary>A city/regency from the myquran.com (Kemenag) API. Name is as returned, e.g. "KOTA JAKARTA".</summary>
-public sealed record City(string Id, string Name, string? Province = null)
+/// <summary>
+/// A place to get prayer times for. Two kinds:
+/// <list type="bullet">
+/// <item>Kemenag (Indonesia): <see cref="Id"/> is the numeric myquran.com city id, Name like "KOTA JAKARTA", no coordinates.</item>
+/// <item>World: <see cref="Id"/> is "geo:{geonamesId}", with coordinates and an IANA time zone; times come from Aladhan.</item>
+/// </list>
+/// </summary>
+public sealed record City(
+    string Id,
+    string Name,
+    string? Province = null,     // Kemenag: province; World: region (admin1), e.g. "England"
+    double? Latitude = null,
+    double? Longitude = null,
+    string? TimeZoneId = null,   // IANA, e.g. "Europe/London"
+    string? Country = null)      // World: country name, e.g. "United Kingdom"
 {
-    /// <summary>Title-cased name for display, e.g. "Kota Jakarta", "Kab. Lampung Tengah".</summary>
-    public string DisplayName => System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(Name.ToLowerInvariant());
+    /// <summary>True for a worldwide (Aladhan) location, false for an Indonesian Kemenag city.</summary>
+    public bool IsWorld => Latitude is not null && Longitude is not null;
+
+    /// <summary>"Kota Jakarta" for Kemenag names (title-cased), "London, United Kingdom" for world places.</summary>
+    public string DisplayName => IsWorld
+        ? (string.IsNullOrWhiteSpace(Country) ? Name : $"{Name}, {Country}")
+        : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(Name.ToLowerInvariant());
 }
 
 public static class DefaultCity
@@ -17,6 +35,9 @@ public static class DefaultCity
 }
 
 public sealed record PrayerTime(Prayer Prayer, DateTime Time);
+
+/// <summary>Aladhan calculation options. <paramref name="Method"/> null = Aladhan picks by location; AsrHanafi = school 1.</summary>
+public sealed record PrayerCalc(int? Method = null, bool AsrHanafi = false);
 
 public sealed record DaySchedule(DateOnly Date, City City, IReadOnlyList<PrayerTime> Times)
 {
@@ -59,13 +80,17 @@ public sealed record Reminder(
     Habit? Habit = null,     // set for Habit reminders: the card offers "Sudah" / "Nanti"
     CalendarSource? Source = null); // set for Meeting reminders: shown as an Outlook / Google badge
 
-/// <summary>One hadith for the daily card. Text comes from api.myquran.com (Arbain Nawawi).</summary>
+/// <summary>
+/// One hadith for the daily card (Arbain Nawawi, 42 hadith). Indonesian text comes from api.myquran.com,
+/// English from fawazahmed0/hadith-api (Unlicense).
+/// </summary>
 public sealed record Hadith(
-    string Collection,       // e.g. "Arbain Nawawi"
+    string Collection,       // e.g. "Arbain Nawawi" / "Forty Hadith of an-Nawawi"
     int Number,
-    string Title,            // e.g. "Amalan Bergantung pada Niat"
+    string Title,            // e.g. "Amalan Bergantung pada Niat"; English edition has none → "Hadith 12"
     string Arabic,
-    string Indonesian,
+    string Translation,      // in Language
+    AppLanguage Language,
     DateOnly Date);          // the day this hadith was chosen for
 
 public sealed class SelaSettings
@@ -112,6 +137,26 @@ public sealed class SelaSettings
     /// <summary>Show the "Hadits hari ini" card once each morning.</summary>
     public bool DailyHadithCard { get; set; } = true;
 
+    // ---- language ----
+    /// <summary>Interface language; null = follow the Windows display language.</summary>
+    public AppLanguage? Language { get; set; }
+    public AppLanguage ResolveLanguage() =>
+        Language ?? AppLanguages.FromCulture(System.Globalization.CultureInfo.CurrentUICulture);
+
+    // ---- worldwide location (Aladhan). All null = Indonesian Kemenag city from CityId/CityName. ----
+    public double? CityLatitude { get; set; }
+    public double? CityLongitude { get; set; }
+    public string? CityTimeZone { get; set; }      // IANA
+    public string? CityCountry { get; set; }
+    public string? CityRegion { get; set; }
+    /// <summary>Aladhan calculation method id (e.g. 3 = Muslim World League); null = Aladhan picks by location.</summary>
+    public int? PrayerMethod { get; set; }
+    /// <summary>Asr by the Hanafi school (shadow factor 2) instead of the standard Shafi'i one.</summary>
+    public bool AsrHanafi { get; set; }
+
+    /// <summary>Calculation options for worldwide (Aladhan) locations; ignored for Kemenag cities.</summary>
+    public PrayerCalc GetPrayerCalc() => new(PrayerMethod, AsrHanafi);
+
     public bool IsHabitOn(Habit h) =>
         HabitRemindersEnabled && HabitEnabled is not null && HabitEnabled.TryGetValue(h, out var on) && on;
 
@@ -119,8 +164,27 @@ public sealed class SelaSettings
     public bool ShouldPlayAdhan(Prayer p) =>
         AdhanEnabled && !AdhanMuted && AdhanPrayers is not null && AdhanPrayers.TryGetValue(p, out var on) && on;
 
-    /// <summary>The selected city; falls back to Jakarta when the id is missing.</summary>
-    public City GetCity() => string.IsNullOrWhiteSpace(CityId)
-        ? DefaultCity.Jakarta
-        : new City(CityId.Trim(), string.IsNullOrWhiteSpace(CityName) ? CityId.Trim() : CityName.Trim());
+    /// <summary>The selected place; falls back to Jakarta when nothing usable is stored.</summary>
+    public City GetCity()
+    {
+        if (CityLatitude is { } lat && CityLongitude is { } lng && double.IsFinite(lat) && double.IsFinite(lng)
+            && !string.IsNullOrWhiteSpace(CityId))
+            return new City(CityId.Trim(), string.IsNullOrWhiteSpace(CityName) ? CityId.Trim() : CityName.Trim(),
+                CityRegion, lat, lng, CityTimeZone, CityCountry);
+        return string.IsNullOrWhiteSpace(CityId)
+            ? DefaultCity.Jakarta
+            : new City(CityId.Trim(), string.IsNullOrWhiteSpace(CityName) ? CityId.Trim() : CityName.Trim());
+    }
+
+    /// <summary>Stores <paramref name="city"/> as the selected place (Kemenag or world).</summary>
+    public void SetCity(City city)
+    {
+        CityId = city.Id;
+        CityName = city.Name;
+        CityLatitude = city.Latitude;
+        CityLongitude = city.Longitude;
+        CityTimeZone = city.TimeZoneId;
+        CityCountry = city.Country;
+        CityRegion = city.IsWorld ? city.Province : null;
+    }
 }

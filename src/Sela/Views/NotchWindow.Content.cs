@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Sela.Core;
+using Sela.Localization;
 using Sela.Views.Notch;
 
 namespace Sela.Views;
@@ -140,22 +141,22 @@ public partial class NotchWindow
             HadithTitle.Text = hadith.Title;
             HadithArabic.Text = hadith.Arabic?.Trim() ?? string.Empty;
             HadithArabic.Visibility = string.IsNullOrWhiteSpace(hadith.Arabic) ? Visibility.Collapsed : Visibility.Visible;
-            HadithIndonesian.Text = hadith.Indonesian?.Trim() ?? string.Empty;
+            HadithIndonesian.Text = hadith.Translation?.Trim() ?? string.Empty;
             HaditsScroll.ScrollToTop();
-            System.Windows.Automation.AutomationProperties.SetName(HaditsScroll, $"{hadith.Title}. {hadith.Indonesian}");
+            System.Windows.Automation.AutomationProperties.SetName(HaditsScroll, $"{hadith.Title}. {hadith.Translation}");
         }
 
         if (State.HadithLoading && !has)
         {
             HaditsEmptyIcon.Text = "\uE895"; // sync
-            HaditsEmptyTitle.Text = "Memuat hadits…";
-            HaditsEmptyBody.Text = "Sebentar ya";
+            HaditsEmptyTitle.Text = Loc.T("Notch_LoadingHadith");
+            HaditsEmptyBody.Text = Loc.T("Notch_JustAMoment");
         }
         else
         {
             HaditsEmptyIcon.Text = "\uE82D"; // book
-            HaditsEmptyTitle.Text = "Hadits belum tersedia";
-            HaditsEmptyBody.Text = "Cek koneksi internet";
+            HaditsEmptyTitle.Text = Loc.T("Notch_HadithUnavailable");
+            HaditsEmptyBody.Text = Loc.T("Notch_CheckInternet");
         }
     }
 

@@ -62,7 +62,61 @@ public sealed partial class HadithClient
         if (d.No is { } no && (!int.TryParse(no.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var n) || n != number))
             throw new PrayerApiException($"Nomor hadits tidak cocok: '{no}'.");
 
-        return new Hadith(ArbainCollection, number, d.Judul?.Trim() ?? "", arabic, indonesian, default);
+        return new Hadith(ArbainCollection, number, d.Judul?.Trim() ?? "", arabic, indonesian, AppLanguage.Indonesian, default);
+    }
+
+    public const string EnglishCollection = "Forty Hadith of an-Nawawi";
+    /// <summary>fawazahmed0/hadith-api (Unlicense / public domain), served by jsDelivr.</summary>
+    public static readonly Uri EditionsAddress = new("https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/");
+
+    /// <summary>Gets an-Nawawi hadith 1..42 in English with its Arabic text. Throws PrayerApiException on a bad response.</summary>
+    public async Task<Hadith> GetNawawiEnglishAsync(int number, CancellationToken ct)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(number, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(number, ArbainCount);
+
+        var english = GetEditionTextAsync("eng-nawawi", number, ct);
+        var arabic = GetEditionTextAsync("ara-nawawi", number, ct);
+        await Task.WhenAll(english, arabic).ConfigureAwait(false);
+        return new Hadith(EnglishCollection, number, string.Create(CultureInfo.InvariantCulture, $"Hadith {number}"),
+            arabic.Result, english.Result, AppLanguage.English, default);
+    }
+
+    private async Task<string> GetEditionTextAsync(string edition, int number, CancellationToken ct)
+    {
+        var path = string.Create(CultureInfo.InvariantCulture, $"{edition}/{number}.json");
+        string text;
+        try
+        {
+            text = await SafeIo.GetStringAsync(_http, new Uri(EditionsAddress, path), Timeout, MaxBytes, "application/json", ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            _log?.Invoke($"hadith-api: {path} failed ({ex.GetType().Name}: {ex.Message})");
+            throw new PrayerApiException("Cannot reach cdn.jsdelivr.net.", ex);
+        }
+
+        EditionDto? dto;
+        try { dto = JsonSerializer.Deserialize<EditionDto>(text, Json); }
+        catch (JsonException ex)
+        {
+            _log?.Invoke($"hadith-api: {path} invalid JSON ({ex.Message})");
+            throw new PrayerApiException("Invalid hadith response.", ex);
+        }
+
+        var h = dto?.Hadiths?.FirstOrDefault(x => x is not null && x.Hadithnumber == number)
+            ?? throw new PrayerApiException($"Hadith {number} missing from {edition}.");
+        var clean = Whitespace().Replace(h.Text ?? "", " ").Trim();
+        if (clean.Length == 0) throw new PrayerApiException($"Empty hadith text from {edition}.");
+        return clean;
+    }
+
+    internal sealed class EditionDto { public List<EditionHadithDto?>? Hadiths { get; set; } }
+
+    internal sealed class EditionHadithDto
+    {
+        public decimal Hadithnumber { get; set; }
+        public string? Text { get; set; }
     }
 
     [GeneratedRegex(@"\s+")]
@@ -84,7 +138,6 @@ public sealed class HadithService
     public static readonly TimeSpan RetryBackoff = TimeSpan.FromMinutes(1);
     public const int MaxCachedFiles = 7;
 
-    private const string FilePrefix = "hadith-";
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = false };
 
     private readonly HadithClient _client;
@@ -92,8 +145,11 @@ public sealed class HadithService
     private readonly Action<string>? _log;
     private readonly TimeProvider _time;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private Hadith? _today;
-    private DateTimeOffset? _lastFailure;
+    private readonly Dictionary<AppLanguage, Hadith> _today = new();
+    private readonly Dictionary<AppLanguage, DateTimeOffset> _lastFailure = new();
+
+    /// <summary>"hadith-" for Indonesian (name kept for existing caches), "hadith-en-" for English.</summary>
+    private static string PrefixFor(AppLanguage language) => language == AppLanguage.English ? "hadith-en-" : "hadith-";
 
     public HadithService(HadithClient client, string? cacheDir = null, Action<string>? log = null, TimeProvider? time = null)
     {
@@ -103,33 +159,41 @@ public sealed class HadithService
         _time = time ?? TimeProvider.System;
     }
 
-    /// <summary>Today's hadith; null when offline and nothing is cached. Never throws except on cancellation.</summary>
-    public async Task<Hadith?> GetTodayAsync(CancellationToken ct)
+    /// <summary>
+    /// Today's hadith in <paramref name="language"/>; null when offline and nothing in that language is cached.
+    /// Both languages show the same hadith number on a given day. Never throws except on cancellation.
+    /// </summary>
+    public async Task<Hadith?> GetTodayAsync(CancellationToken ct, AppLanguage language = AppLanguage.Indonesian)
     {
+        if (!Enum.IsDefined(language)) language = AppLanguage.Indonesian;
         var today = DateOnly.FromDateTime(_time.GetLocalNow().DateTime);
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (_today is { } mem && mem.Date == today) return mem;
+            if (_today.TryGetValue(language, out var mem) && mem.Date == today) return mem;
 
-            var path = PathFor(today);
-            if (ReadCache(path) is { } disk && disk.Date == today) return _today = disk;
+            var path = PathFor(language, today);
+            if (ReadCache(path, language) is { } disk && disk.Date == today) return _today[language] = disk;
 
             var now = _time.GetUtcNow();
-            if (_lastFailure is { } failedAt && now - failedAt < RetryBackoff) return MostRecentCached();
+            if (_lastFailure.TryGetValue(language, out var failedAt) && now - failedAt < RetryBackoff) return MostRecentCached(language);
 
             try
             {
-                var fetched = await _client.GetArbainAsync(NumberFor(today), ct).ConfigureAwait(false) with { Date = today };
-                _lastFailure = null;
+                var number = NumberFor(today);
+                var fetched = language == AppLanguage.English
+                    ? await _client.GetNawawiEnglishAsync(number, ct).ConfigureAwait(false)
+                    : await _client.GetArbainAsync(number, ct).ConfigureAwait(false);
+                fetched = fetched with { Date = today };
+                _lastFailure.Remove(language);
                 WriteCache(path, fetched);
-                return _today = fetched;
+                return _today[language] = fetched;
             }
             catch (PrayerApiException ex)
             {
-                _lastFailure = now;
-                var fallback = MostRecentCached();
-                _log?.Invoke($"Hadits {today:yyyy-MM-dd}: {ex.Message}{(fallback is null ? "" : $" (memakai hadits {fallback.Date:yyyy-MM-dd})")}");
+                _lastFailure[language] = now;
+                var fallback = MostRecentCached(language);
+                _log?.Invoke($"Hadits {language} {today:yyyy-MM-dd}: {ex.Message}{(fallback is null ? "" : $" (memakai hadits {fallback.Date:yyyy-MM-dd})")}");
                 return fallback;
             }
         }
@@ -149,16 +213,17 @@ public sealed class HadithService
 
     // ---- disk cache ----
 
-    private string PathFor(DateOnly date) =>
-        Path.Combine(_cacheDir, FilePrefix + date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".json");
+    private string PathFor(AppLanguage language, DateOnly date) =>
+        Path.Combine(_cacheDir, PrefixFor(language) + date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".json");
 
-    /// <summary>Cache files newest first (the yyyy-MM-dd file name sorts chronologically).</summary>
-    private List<string> CacheFiles()
+    /// <summary>Cache files of one language, newest first (the yyyy-MM-dd file name sorts chronologically).</summary>
+    private List<string> CacheFiles(AppLanguage language)
     {
         try
         {
             if (!Directory.Exists(_cacheDir)) return new();
-            return Directory.EnumerateFiles(_cacheDir, FilePrefix + "????-??-??.json")
+            // "hadith-????-??-??.json" cannot match "hadith-en-2026-10-24.json" (length differs), so languages stay apart.
+            return Directory.EnumerateFiles(_cacheDir, PrefixFor(language) + "????-??-??.json")
                 .OrderByDescending(Path.GetFileName, StringComparer.Ordinal)
                 .ToList();
         }
@@ -169,22 +234,29 @@ public sealed class HadithService
         }
     }
 
-    private Hadith? MostRecentCached()
+    private Hadith? MostRecentCached(AppLanguage language)
     {
-        foreach (var file in CacheFiles())
-            if (ReadCache(file) is { } h) return h;
+        foreach (var file in CacheFiles(language))
+            if (ReadCache(file, language) is { } h) return h;
         return null;
     }
 
-    private Hadith? ReadCache(string path)
+    private Hadith? ReadCache(string path, AppLanguage language)
     {
         try
         {
             if (!File.Exists(path)) return null;
-            var h = JsonSerializer.Deserialize<Hadith>(File.ReadAllText(path), Json);
-            if (h is null || h.Number is < 1 or > HadithClient.ArbainCount
-                || string.IsNullOrWhiteSpace(h.Arabic) || string.IsNullOrWhiteSpace(h.Indonesian)) return null;
-            return h with { Collection = h.Collection ?? HadithClient.ArbainCollection, Title = h.Title ?? "" };
+            var text = File.ReadAllText(path);
+            var h = JsonSerializer.Deserialize<Hadith>(text, Json);
+            if (h is null) return null;
+            // Files written before the Translation rename stored the text as "Indonesian" (and had no Language = Indonesian).
+            if (string.IsNullOrWhiteSpace(h.Translation)
+                && JsonDocument.Parse(text).RootElement.TryGetProperty("Indonesian", out var legacy) && legacy.ValueKind == JsonValueKind.String)
+                h = h with { Translation = legacy.GetString()! };
+            if (h.Language != language || h.Number is < 1 or > HadithClient.ArbainCount
+                || string.IsNullOrWhiteSpace(h.Arabic) || string.IsNullOrWhiteSpace(h.Translation)) return null;
+            var collection = language == AppLanguage.English ? HadithClient.EnglishCollection : HadithClient.ArbainCollection;
+            return h with { Collection = h.Collection ?? collection, Title = h.Title ?? "" };
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException or NotSupportedException)
         {
@@ -198,7 +270,7 @@ public sealed class HadithService
         try
         {
             SafeIo.WriteAllTextAtomic(path, JsonSerializer.Serialize(hadith, Json));
-            foreach (var old in CacheFiles().Skip(MaxCachedFiles)) File.Delete(old);
+            foreach (var old in CacheFiles(hadith.Language).Skip(MaxCachedFiles)) File.Delete(old);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

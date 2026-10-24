@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Sela.Core;
+using Sela.Localization;
 
 namespace Sela.Views;
 
@@ -56,11 +57,16 @@ public partial class SettingsWindow : Window
             [Prayer.Maghrib] = AMaghrib, [Prayer.Isya] = AIsya,
         };
 
+        _openingLanguage = Loc.Instance.Language;
+
+        LoadLanguage();
         LoadFromSettings(startWithWindows);
+        LoadCalculation();
         LoadAdhan();
         LoadHabits();
-        UpdatePreviewIcons();
+        ApplyLanguageTexts();
 
+        Loc.Instance.LanguageChanged += ApplyLanguageTexts;
         PreviewKeyDown += OnWindowKeyDown;
         Loaded += (_, _) =>
         {
@@ -69,10 +75,119 @@ public partial class SettingsWindow : Window
         };
         Closed += (_, _) =>
         {
+            Loc.Instance.LanguageChanged -= ApplyLanguageTexts;
             CancelSearch();
             StopPreview();
             Adhan = null; // unsubscribe from PlayingChanged
+            // Batal / close: undo the live language preview. On Simpan the shell applies the saved value.
+            if (!_saved) Loc.Instance.Language = _openingLanguage;
         };
+    }
+
+    // ---------- Language ----------
+
+    private readonly AppLanguage _openingLanguage;
+    private bool _saved;
+    private bool _loadingLanguage;
+
+    private void LoadLanguage()
+    {
+        _loadingLanguage = true;
+        (_settings.Language switch
+        {
+            AppLanguage.Indonesian => LangIndonesian,
+            AppLanguage.English => LangEnglish,
+            _ => LangSystem,
+        }).IsChecked = true;
+        _loadingLanguage = false;
+    }
+
+    private void OnLanguageChecked(object sender, RoutedEventArgs e)
+    {
+        if (_loadingLanguage || _settings is null) return;
+        _settings.Language = sender == LangIndonesian ? AppLanguage.Indonesian
+            : sender == LangEnglish ? AppLanguage.English
+            : null;
+        Loc.Instance.Language = _settings.ResolveLanguage(); // live preview; raises LanguageChanged
+    }
+
+    /// <summary>Re-renders every text built in code (XAML bindings refresh by themselves).</summary>
+    private void ApplyLanguageTexts()
+    {
+        var lang = Loc.Instance.Language;
+        foreach (var (prayer, box) in _prayerBoxes) box.Content = Names.Prayer(prayer, lang);
+        foreach (var (prayer, box) in _adhanBoxes) box.Content = Names.Prayer(prayer, lang);
+
+        HPagiName.Text = Names.Habit(Habit.DzikirPagi, lang);
+        HSholawatName.Text = Names.Habit(Habit.Sholawat, lang);
+        HPetangName.Text = Names.Habit(Habit.DzikirPetang, lang);
+        foreach (var (habit, box) in HabitBoxes) AutomationProperties.SetName(box, Names.Habit(habit, lang));
+
+        UpdateCityTexts();
+        UpdateFileLabels();
+        UpdatePreviewIcons();
+        UpdateRevealLabel();
+        RefreshMethodLabels();
+        if (_statusText is not null) SearchStatusText.Text = _statusText();
+    }
+
+    // ---------- Calculation (worldwide places) ----------
+
+    /// <summary>Aladhan method ids with their proper names (same in both languages).</summary>
+    private static readonly (int Id, string Name)[] AladhanMethods =
+    [
+        (3, "Muslim World League"),
+        (2, "Islamic Society of North America (ISNA)"),
+        (5, "Egyptian General Authority of Survey"),
+        (4, "Umm Al-Qura University, Makkah"),
+        (1, "University of Islamic Sciences, Karachi"),
+        (7, "Institute of Geophysics, University of Tehran"),
+        (0, "Shia Ithna-Ashari (Jafari)"),
+        (8, "Gulf Region"),
+        (9, "Kuwait"),
+        (10, "Qatar"),
+        (11, "Majlis Ugama Islam Singapura"),
+        (12, "Union des Organisations Islamiques de France"),
+        (13, "Diyanet İşleri Başkanlığı, Turkey"),
+        (14, "Spiritual Administration of Muslims of Russia"),
+        (15, "Moonsighting Committee Worldwide"),
+        (16, "Dubai"),
+        (17, "JAKIM (Malaysia)"),
+        (18, "Tunisia"),
+        (19, "Algeria"),
+        (20, "Kemenag (Indonesia)"),
+        (21, "Morocco"),
+        (22, "Comunidade Islâmica de Lisboa"),
+        (23, "Jordan"),
+    ];
+
+    private sealed class MethodOption(int? id, string label) : System.ComponentModel.INotifyPropertyChanged
+    {
+        private string _label = label;
+        public int? Id { get; } = id;
+        public string Label
+        {
+            get => _label;
+            set { _label = value; PropertyChanged?.Invoke(this, new(nameof(Label))); }
+        }
+        public override string ToString() => Label; // used by screen readers / text search
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    }
+
+    private void LoadCalculation()
+    {
+        var options = new List<MethodOption> { new(null, Loc.T("Settings_MethodAuto")) };
+        options.AddRange(AladhanMethods.Select(m => new MethodOption(m.Id, m.Name)));
+        MethodCombo.ItemsSource = options;
+        // An unknown stored id falls back to Automatic rather than silently picking a different method.
+        MethodCombo.SelectedItem = options.FirstOrDefault(o => o.Id == _settings.PrayerMethod) ?? options[0];
+        HanafiToggle.IsChecked = _settings.AsrHanafi;
+    }
+
+    private void RefreshMethodLabels()
+    {
+        if (MethodCombo.ItemsSource is IEnumerable<MethodOption> options && options.FirstOrDefault() is { Id: null } auto)
+            auto.Label = Loc.T("Settings_MethodAuto");
     }
 
     public SelaSettings Settings { get; }
@@ -85,8 +200,6 @@ public partial class SettingsWindow : Window
 
     private void LoadFromSettings(bool startWithWindows)
     {
-        CurrentCityText.Text = _settings.GetCity().DisplayName;
-
         foreach (var (prayer, box) in _prayerBoxes)
             box.IsChecked = _settings.PrayerEnabled.TryGetValue(prayer, out var on) && on;
 
@@ -121,6 +234,14 @@ public partial class SettingsWindow : Window
         HabitRemindersEnabled = s.HabitRemindersEnabled,
         HabitEnabled = s.HabitEnabled is null ? new() : new Dictionary<Habit, bool>(s.HabitEnabled),
         DailyHadithCard = s.DailyHadithCard,
+        Language = s.Language,
+        CityLatitude = s.CityLatitude,
+        CityLongitude = s.CityLongitude,
+        CityTimeZone = s.CityTimeZone,
+        CityCountry = s.CityCountry,
+        CityRegion = s.CityRegion,
+        PrayerMethod = s.PrayerMethod,
+        AsrHanafi = s.AsrHanafi,
     };
 
     // ---------- Ibadah harian ----------
@@ -158,8 +279,6 @@ public partial class SettingsWindow : Window
     }
 
     // ---------- Adzan ----------
-
-    private const string AudioFilter = "Audio (*.mp3;*.wav;*.wma;*.m4a;*.aac)|*.mp3;*.wav;*.wma;*.m4a;*.aac";
 
     /// <summary>Set by the shell after construction; preview is a no-op when null.</summary>
     public IAdhanPlayer? Adhan
@@ -230,17 +349,20 @@ public partial class SettingsWindow : Window
     }
 
     private static string FileLabel(string? path) =>
-        string.IsNullOrWhiteSpace(path) ? "Bawaan" : System.IO.Path.GetFileName(path);
+        string.IsNullOrWhiteSpace(path) ? Loc.T("Settings_Default") : System.IO.Path.GetFileName(path);
 
     private string? PickAudio(string title)
     {
-        var dlg = new Microsoft.Win32.OpenFileDialog { Title = title, Filter = AudioFilter, CheckFileExists = true };
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = title, Filter = Loc.T("Settings_AudioFilter"), CheckFileExists = true,
+        };
         return dlg.ShowDialog(this) == true ? dlg.FileName : null;
     }
 
     private void OnPickAdhanFile(object sender, RoutedEventArgs e)
     {
-        if (PickAudio("Pilih suara adzan") is not { } file) return;
+        if (PickAudio(Loc.T("Settings_PickAdhanTitle")) is not { } file) return;
         StopPreview();
         _settings.AdhanFile = file;
         UpdateFileLabels();
@@ -248,7 +370,7 @@ public partial class SettingsWindow : Window
 
     private void OnPickSubuhFile(object sender, RoutedEventArgs e)
     {
-        if (PickAudio("Pilih suara adzan Subuh") is not { } file) return;
+        if (PickAudio(Loc.T("Settings_PickSubuhTitle")) is not { } file) return;
         StopPreview();
         _settings.AdhanSubuhFile = file;
         UpdateFileLabels();
@@ -305,17 +427,16 @@ public partial class SettingsWindow : Window
     {
         var playing = _adhan?.IsPlaying == true;
         if (!playing) _previewSubuh = null;
-        SetPreviewIcon(AdhanPreview, playing && _previewSubuh == false, "adzan");
-        SetPreviewIcon(SubuhPreview, playing && _previewSubuh == true, "adzan Subuh");
+        SetPreviewIcon(AdhanPreview, playing && _previewSubuh == false, "Settings_PlayAdhanSample", "Settings_StopAdhanSample");
+        SetPreviewIcon(SubuhPreview, playing && _previewSubuh == true, "Settings_PlaySubuhSample", "Settings_StopSubuhSample");
         AdhanPreview.IsEnabled = SubuhPreview.IsEnabled = _adhan is not null;
     }
 
-    private static void SetPreviewIcon(Button button, bool playing, string what)
+    private static void SetPreviewIcon(Button button, bool playing, string playKey, string stopKey)
     {
         button.Content = playing ? "\uE71A" : "\uE768";
-        var label = playing ? $"Hentikan contoh {what}" : $"Putar contoh {what}";
-        AutomationProperties.SetName(button, label);
-        button.ToolTip = playing ? "Hentikan" : "Putar contoh";
+        AutomationProperties.SetName(button, Loc.T(playing ? stopKey : playKey));
+        button.ToolTip = Loc.T(playing ? "Settings_Stop" : "Settings_PlaySample");
     }
 
     // ---------- Segmented controls ----------
@@ -353,12 +474,12 @@ public partial class SettingsWindow : Window
         try
         {
             await Task.Delay(SearchDebounce, cts.Token);
-            ShowStatus("Mencari…", spinning: true);
+            ShowStatus(() => Loc.T("Settings_Searching"), spinning: true);
             var results = await _searchCities(query, cts.Token);
             if (cts.IsCancellationRequested) return;
 
             ShowResults(results);
-            ShowStatus(results.Count == 0 ? "Kota tidak ditemukan" : null);
+            ShowStatus(results.Count == 0 ? () => Loc.T("Settings_NotFound") : null);
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
@@ -368,8 +489,37 @@ public partial class SettingsWindow : Window
         {
             if (cts.IsCancellationRequested) return;
             ShowResults(null);
-            ShowStatus("Gagal mencari. Cek koneksi internet.");
+            ShowStatus(() => Loc.T("Settings_SearchFailed"));
         }
+    }
+
+    /// <summary>One row in the results list: Kemenag → province + chip; world → "Region · Country".</summary>
+    private sealed record CityResult(City City, string Title, string Subtitle, bool IsKemenag);
+
+    private static CityResult ToResult(City c)
+    {
+        string subtitle;
+        if (c.IsWorld)
+        {
+            var parts = new[] { c.Province, c.Country }.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!.Trim());
+            subtitle = string.Join(" · ", parts);
+        }
+        else
+        {
+            subtitle = string.IsNullOrWhiteSpace(c.Province)
+                ? string.Empty
+                : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(c.Province.Trim().ToLowerInvariant());
+        }
+        return new CityResult(c, c.DisplayName, subtitle, !c.IsWorld);
+    }
+
+    private void UpdateCityTexts()
+    {
+        var city = _settings.GetCity();
+        CurrentCityText.Text = city.DisplayName;
+        CurrentCityText.ToolTip = city.DisplayName;
+        SourceNote.Text = Loc.T(city.IsWorld ? "Settings_SourceAladhan" : "Settings_SourceKemenag");
+        CalculationPanel.Visibility = city.IsWorld ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void CancelSearch()
@@ -379,8 +529,12 @@ public partial class SettingsWindow : Window
         _searchCts = null;
     }
 
-    private void ShowStatus(string? text, bool spinning = false)
+    /// <summary>Builds the current status line; kept so it can be re-rendered on a language switch.</summary>
+    private Func<string>? _statusText;
+
+    private void ShowStatus(Func<string>? text, bool spinning = false)
     {
+        _statusText = text;
         var spin = (Storyboard)FindResource("Spin");
         if (text is null)
         {
@@ -388,7 +542,7 @@ public partial class SettingsWindow : Window
             spin.Stop(this);
             return;
         }
-        SearchStatusText.Text = text;
+        SearchStatusText.Text = text();
         SearchStatus.Visibility = Visibility.Visible;
         Spinner.Visibility = spinning ? Visibility.Visible : Visibility.Collapsed;
         if (spinning) spin.Begin(this, isControllable: true);
@@ -397,7 +551,7 @@ public partial class SettingsWindow : Window
 
     private void ShowResults(IReadOnlyList<City>? results)
     {
-        ResultsList.ItemsSource = results;
+        ResultsList.ItemsSource = results?.Select(ToResult).ToList();
         ResultsList.Visibility = results is { Count: > 0 } ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -405,7 +559,7 @@ public partial class SettingsWindow : Window
     {
         if (e.Key == Key.Enter && ResultsList.Items.Count > 0)
         {
-            SelectCity((City)ResultsList.Items[0]);
+            SelectCity(((CityResult)ResultsList.Items[0]).City);
             e.Handled = true;
         }
         else if (e.Key == Key.Down && ResultsList.Items.Count > 0)
@@ -418,23 +572,22 @@ public partial class SettingsWindow : Window
 
     private void OnResultsKeyDown(object sender, KeyEventArgs e)
     {
-        if ((e.Key == Key.Enter || e.Key == Key.Space) && ResultsList.SelectedItem is City city)
+        if ((e.Key == Key.Enter || e.Key == Key.Space) && ResultsList.SelectedItem is CityResult r)
         {
-            SelectCity(city);
+            SelectCity(r.City);
             e.Handled = true;
         }
     }
 
     private void OnResultClicked(object sender, MouseButtonEventArgs e)
     {
-        if (sender is ListBoxItem { DataContext: City city }) SelectCity(city);
+        if (sender is ListBoxItem { DataContext: CityResult r }) SelectCity(r.City);
     }
 
     private void SelectCity(City city)
     {
-        _settings.CityId = city.Id;
-        _settings.CityName = city.Name;
-        CurrentCityText.Text = city.DisplayName;
+        _settings.SetCity(city);
+        UpdateCityTexts();
 
         CancelSearch();
         SearchBox.TextChanged -= OnSearchTextChanged;
@@ -442,7 +595,7 @@ public partial class SettingsWindow : Window
         SearchBox.TextChanged += OnSearchTextChanged;
         SearchPlaceholder.Visibility = Visibility.Visible;
         ShowResults(null);
-        ShowStatus($"Lokasi diganti ke {city.DisplayName}");
+        ShowStatus(() => Loc.F("Settings_CityChanged", city.DisplayName));
         SearchBox.Focus();
     }
 
@@ -482,12 +635,17 @@ public partial class SettingsWindow : Window
         GoogleText.Visibility = reveal ? Visibility.Visible : Visibility.Collapsed;
         GooglePassword.Visibility = reveal ? Visibility.Collapsed : Visibility.Visible;
         RevealToggle.Content = reveal ? "\uED1A" : "\uE7B3";
-        var label = reveal ? "Sembunyikan alamat" : "Tampilkan alamat";
-        AutomationProperties.SetName(RevealToggle, label);
-        RevealToggle.ToolTip = label;
+        UpdateRevealLabel();
 
         if (!reveal) GoogleText.Clear(); // don't keep plaintext in a hidden TextBox
         else GooglePassword.Clear();
+    }
+
+    private void UpdateRevealLabel()
+    {
+        var label = Loc.T(RevealToggle.IsChecked == true ? "Settings_HideAddress" : "Settings_ShowAddress");
+        AutomationProperties.SetName(RevealToggle, label);
+        RevealToggle.ToolTip = label;
     }
 
     private bool IsGoogleValid(out string normalized)
@@ -552,7 +710,11 @@ public partial class SettingsWindow : Window
         _ui.NotchAlwaysVisible = IdleToggle.IsChecked == true;
         SaveAdhan();
         SaveHabits();
+        // Language is written by the segmented control; calculation only matters for world places but is kept either way.
+        _settings.PrayerMethod = (MethodCombo.SelectedItem as MethodOption)?.Id;
+        _settings.AsrHanafi = HanafiToggle.IsChecked == true;
 
+        _saved = true;
         Saved?.Invoke(_settings, _ui, autostart);
         Close();
     }
