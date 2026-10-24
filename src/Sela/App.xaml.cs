@@ -29,6 +29,11 @@ public partial class App : Application, IAppCommands
     private readonly ReminderScheduler _scheduler = new();
     private IcsCalendarProvider _ics = null!;
     private AgendaService _agenda = null!;
+    private HabitTracker _tracker = null!;
+    private readonly HabitScheduler _habitScheduler = new();
+    private HadithService? _hadithService; // null under --mock
+    private DateOnly _day;                  // day the habit map / hadith were last refreshed for
+    private bool _hadithBusy;
 
     private readonly NotchState _state = new();
     private NotchWindow _notch = null!;
@@ -67,6 +72,11 @@ public partial class App : Application, IAppCommands
         {
             _settings = new SelaSettings();
             _ui = new UiSettings();
+            _tracker = new HabitTracker(null);
+            // Seed the in-memory tracker with the sample "done" state.
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            foreach (var (habit, done) in MockData.HabitsDone())
+                if (done) _tracker.MarkDone(habit, today);
             LoadMockData();
             _adhan = new SilentAdhanPlayer();
         }
@@ -85,13 +95,17 @@ public partial class App : Application, IAppCommands
             _agenda = CreateAgenda();
             _state.City = _settings.GetCity();
             _adhan = new AdhanPlayer();
+            _tracker = HabitTracker.Default();
+            _hadithService = new HadithService(new HadithClient(_http, Log.Write), log: Log.Write);
         }
         _adhan.PlayingChanged += () => _state.AdhanPlaying = _adhan.IsPlaying;
 
         _notch = new NotchWindow(_state, this);
         _notch.Show();
-        _tray = new TrayIcon(this, () => _notch.ExpandPanel(), TestNotify, Shutdown,
-            () => _settings.AdhanMuted, SetAdhanMuted, () => _adhan.IsPlaying);
+        _notch.ApplyPlacement(_ui.NotchEdge, Math.Clamp(double.IsFinite(_ui.NotchX) ? _ui.NotchX : 0.5, 0, 1));
+        _tray = new TrayIcon(this, () => _notch.ExpandPanel(), () => _notch.ShowHadith(), ResetPlacement,
+            TestNotify, Shutdown, () => _settings.AdhanMuted, SetAdhanMuted, () => _adhan.IsPlaying);
+        CheckDayChanged();
 
         StartTimer(TimeSpan.FromSeconds(1), ClockTick);
         StartTimer(TimeSpan.FromSeconds(2), UpdateIdleVisibility);
@@ -107,6 +121,8 @@ public partial class App : Application, IAppCommands
         if (e.Args.Contains("--demo", StringComparer.OrdinalIgnoreCase)) _ = ShowDemoAsync();
         else if (e.Args.Contains("--test-notify", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestNotify);
         if (e.Args.Contains("--test-adhan", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestAdhan);
+        if (e.Args.Contains("--test-habit", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestHabit);
+        if (e.Args.Contains("--test-hadith", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestHadith);
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -183,6 +199,28 @@ public partial class App : Application, IAppCommands
         if (muted) _adhan.Stop();
     }
 
+    public void MarkHabitDone(Habit habit)
+    {
+        try { _tracker.MarkDone(habit, DateOnly.FromDateTime(DateTime.Now)); }
+        catch (Exception ex) { Log.Error("Kebiasaan", ex); }
+        RefreshHabitsDone();
+    }
+
+    public void SnoozeHabit(Habit habit) => _habitScheduler.Snooze(habit, DateTime.Now);
+
+    public void SaveNotchPlacement(NotchEdge edge, double x)
+    {
+        _ui.NotchEdge = edge;
+        _ui.NotchX = Math.Clamp(double.IsFinite(x) ? x : 0.5, 0, 1);
+        SaveUi();
+    }
+
+    private void ResetPlacement()
+    {
+        _notch.ApplyPlacement(NotchEdge.Top, 0.5);
+        SaveNotchPlacement(NotchEdge.Top, 0.5);
+    }
+
     public void RefreshNow()
     {
         _scheduleKey = default; // force schedule reload
@@ -256,7 +294,12 @@ public partial class App : Application, IAppCommands
     {
         settings.StartWithWindows = startWithWindows;
         _settings = Clone(settings);
+        var placed = _ui;
         _ui = Clone(ui);
+        // Placement and the daily-card date are owned by the shell; the window's copy may be stale.
+        _ui.NotchEdge = placed.NotchEdge;
+        _ui.NotchX = placed.NotchX;
+        _ui.LastHadithCardDate = placed.LastHadithCardDate;
         SaveSettings();
         SaveUi();
         if (!_mock)
@@ -273,6 +316,8 @@ public partial class App : Application, IAppCommands
         }
         _idleVisible = null;
         UpdateIdleVisibility();
+        RefreshHabitsDone();
+        RefreshHiddenPrayers();
         RefreshNow();
     }
 
@@ -321,17 +366,105 @@ public partial class App : Application, IAppCommands
         try
         {
             await EnsureScheduleAsync();
+            CheckDayChanged();
             var now = DateTime.Now;
             // Without a schedule, still deliver meeting reminders via an empty prayer list.
             var today = _today ?? new DaySchedule(DateOnly.FromDateTime(now), _settings.GetCity(), Array.Empty<PrayerTime>());
             foreach (var reminder in _scheduler.Due(now, today, _events, _settings))
                 Deliver(reminder);
+            if (_today is not null && _today.Date == DateOnly.FromDateTime(now))
+                foreach (var reminder in _habitScheduler.Due(now, _today, _settings, _tracker))
+                    Deliver(reminder);
+            MaybeShowHadithCard(now);
         }
         catch (Exception ex)
         {
             Log.Error("Pengingat", ex);
         }
     }
+
+    // ---- habits + hadith ----
+
+    /// <summary>On startup and when the date rolls over: refresh the habit map and today's hadith.</summary>
+    private void CheckDayChanged()
+    {
+        var date = DateOnly.FromDateTime(DateTime.Now);
+        if (date == _day) return;
+        _day = date;
+        RefreshHabitsDone();
+        RefreshHiddenPrayers(); // also covers startup: CheckDayChanged runs once when the app starts
+        _ = LoadHadithAsync();
+    }
+
+    /// <summary>
+    /// The five wajib times always show in the panel; Imsak, Terbit and Dhuha only when switched on in Pengaturan.
+    /// </summary>
+    private void RefreshHiddenPrayers()
+    {
+        var hidden = new List<Prayer>();
+        foreach (var p in new[] { Prayer.Imsak, Prayer.Terbit, Prayer.Dhuha })
+            if (_settings.PrayerEnabled is null || !_settings.PrayerEnabled.TryGetValue(p, out var on) || !on) hidden.Add(p);
+        _state.HiddenPrayers = hidden;
+    }
+
+    private void RefreshHabitsDone()
+    {
+        // Mock mode uses the same (in-memory) tracker, so clicking a pill really checks it.
+        var date = DateOnly.FromDateTime(DateTime.Now);
+        var map = new Dictionary<Habit, bool>();
+        foreach (var h in Enum.GetValues<Habit>())
+        {
+            if (!_settings.IsHabitOn(h)) continue;
+            try { map[h] = _tracker.IsDone(h, date); }
+            catch (Exception ex) { Log.Error("Kebiasaan", ex); map[h] = false; }
+        }
+        _state.HabitsDone = map;
+    }
+
+    private async Task LoadHadithAsync()
+    {
+        if (_mock) { _state.Hadith = MockData.Hadith(_day); return; }
+        if (_hadithService is not { } service || _hadithBusy) return;
+        _hadithBusy = true;
+        _state.HadithLoading = true;
+        try
+        {
+            var hadith = await Task.Run(() => service.GetTodayAsync(_shutdown.Token));
+            if (hadith is not null || _state.Hadith?.Date != _day) _state.Hadith = hadith;
+        }
+        catch (OperationCanceledException) when (_shutdown.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            Log.Error("Hadits", ex);
+        }
+        finally
+        {
+            _state.HadithLoading = false;
+            _hadithBusy = false;
+        }
+    }
+
+    /// <summary>Shows "Hadits hari ini" once a day, from Subuh+30m (07:00 without a schedule).</summary>
+    private void MaybeShowHadithCard(DateTime now)
+    {
+        var date = DateOnly.FromDateTime(now);
+        if (!_settings.DailyHadithCard || _ui.LastHadithCardDate == date) return;
+        if (_state.Hadith is not { } hadith || hadith.Date != date) return;
+
+        var subuh = _today is not null && _today.Date == date
+            ? _today.Times.FirstOrDefault(t => t.Prayer == Prayer.Subuh)?.Time
+            : null;
+        var from = subuh?.AddMinutes(30) ?? now.Date.AddHours(7);
+        if (now < from) return;
+
+        DeliverHadith(hadith, now);
+        _ui.LastHadithCardDate = date;
+        SaveUi();
+    }
+
+    private void DeliverHadith(Hadith hadith, DateTime now) =>
+        Deliver(new Reminder($"hadith|{now:yyyyMMdd}", ReminderKind.Hadith, hadith.Title, hadith.Indonesian,
+            null, null, now));
 
     private async Task EnsureScheduleAsync()
     {
@@ -453,6 +586,21 @@ public partial class App : Application, IAppCommands
         settings.AdhanPrayers ??= new();
         settings.AdhanPrayers[Prayer.Dzuhur] = true;
         _adhan.PlayFor(Prayer.Dzuhur, settings);
+    }
+
+    private void TestHabit()
+    {
+        var now = DateTime.Now;
+        Deliver(new Reminder($"test-habit|{Guid.NewGuid():N}", ReminderKind.Habit, "Sudah sholawat hari ini?",
+            "Luangkan sebentar untuk bersholawat", null, null, now, Habit: Habit.Sholawat));
+    }
+
+    private void TestHadith()
+    {
+        var now = DateTime.Now;
+        var hadith = _state.Hadith ?? MockData.Hadith(DateOnly.FromDateTime(now));
+        Deliver(new Reminder($"test-hadith|{Guid.NewGuid():N}", ReminderKind.Hadith, hadith.Title, hadith.Indonesian,
+            null, null, now));
     }
 
     private async Task ShowAfterDelayAsync(Action show)

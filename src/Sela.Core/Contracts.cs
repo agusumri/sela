@@ -42,7 +42,10 @@ public interface ICalendarProvider
     Task<IReadOnlyList<CalendarEvent>> GetEventsAsync(DateTime from, DateTime to, CancellationToken ct);
 }
 
-public enum ReminderKind { PrayerSoon, PrayerNow, Meeting }
+public enum ReminderKind { PrayerSoon, PrayerNow, Meeting, Habit, Hadith }
+
+/// <summary>Daily ibadah check-ins Sela asks about.</summary>
+public enum Habit { DzikirPagi, DzikirPetang, Sholawat }
 
 public sealed record Reminder(
     string Key,
@@ -52,7 +55,18 @@ public sealed record Reminder(
     string? Badge,           // short right-aligned text, e.g. "11:39"
     string? JoinUrl,
     DateTime DueAt,
-    Prayer? Prayer = null);  // set for prayer reminders (used to pick the adzan)
+    Prayer? Prayer = null,   // set for prayer reminders (used to pick the adzan)
+    Habit? Habit = null,     // set for Habit reminders: the card offers "Sudah" / "Nanti"
+    CalendarSource? Source = null); // set for Meeting reminders: shown as an Outlook / Google badge
+
+/// <summary>One hadith for the daily card. Text comes from api.myquran.com (Arbain Nawawi).</summary>
+public sealed record Hadith(
+    string Collection,       // e.g. "Arbain Nawawi"
+    int Number,
+    string Title,            // e.g. "Amalan Bergantung pada Niat"
+    string Arabic,
+    string Indonesian,
+    DateOnly Date);          // the day this hadith was chosen for
 
 public sealed class SelaSettings
 {
@@ -87,6 +101,19 @@ public sealed class SelaSettings
     public string? AdhanFile { get; set; }
     /// <summary>Optional separate file for Subuh; null = same as <see cref="AdhanFile"/> / bundled Subuh adzan.</summary>
     public string? AdhanSubuhFile { get; set; }
+
+    // ---- ibadah check-ins + daily hadith ----
+    /// <summary>Master switch for dzikir/sholawat check-in reminders.</summary>
+    public bool HabitRemindersEnabled { get; set; } = true;
+    public Dictionary<Habit, bool> HabitEnabled { get; set; } = new()
+    {
+        [Habit.DzikirPagi] = true, [Habit.DzikirPetang] = true, [Habit.Sholawat] = true,
+    };
+    /// <summary>Show the "Hadits hari ini" card once each morning.</summary>
+    public bool DailyHadithCard { get; set; } = true;
+
+    public bool IsHabitOn(Habit h) =>
+        HabitRemindersEnabled && HabitEnabled is not null && HabitEnabled.TryGetValue(h, out var on) && on;
 
     /// <summary>True when the adzan should sound for this prayer right now.</summary>
     public bool ShouldPlayAdhan(Prayer p) =>

@@ -24,10 +24,13 @@ public partial class NotchWindow : Window, INotchHost
 {
     private enum Mode { Hidden, Idle, Glance, Panel, Reminder }
 
-    private static readonly Size IdleSize = new(214, 30);
+    private static readonly Size IdleSize = new(236, 30); // room for "Maghrib · 1j 05m 09d" without reflow
     private static readonly Size GlanceSize = new(380, 96);
     private static readonly Size GlanceAdhanSize = new(380, 132); // + "Hentikan adzan" row
-    private static readonly Size PanelSize = new(344, 412);
+    // The panel is 344 wide; its height fits the active tab (see NotchWindow.Content.cs, UpdatePanelHeight).
+    private const double PanelWidth = 344;
+    private const double PanelMinHeight = 260;
+    private const double PanelMaxHeight = 412; // fits 720 DIP screens with room to spare
     private static readonly Size ReminderSize = new(380, 92);
     private const double StageSize = 420;
     private const double MaxCorner = 26;
@@ -38,6 +41,8 @@ public partial class NotchWindow : Window, INotchHost
         Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--panel", StringComparison.OrdinalIgnoreCase));
     private static readonly bool OpenAgendaOnLoad =
         Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--panel=agenda", StringComparison.OrdinalIgnoreCase));
+    private static readonly bool OpenHaditsOnLoad =
+        Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--panel=hadits", StringComparison.OrdinalIgnoreCase));
 
     private static readonly Color SholatColor = Color.FromRgb(0x3D, 0xDC, 0x97);
     private static readonly Color MeetingColor = Color.FromRgb(0x4C, 0x9B, 0xFF);
@@ -99,6 +104,7 @@ public partial class NotchWindow : Window, INotchHost
         }
 
         Island.SizeChanged += (_, _) => SyncShape();
+        InitPlacement();
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         Deactivated += (_, _) => { if (_mode == Mode.Panel) Rest(); };
@@ -113,6 +119,7 @@ public partial class NotchWindow : Window, INotchHost
 
         RebuildPrayerRows();
         RebuildAgendaRows();
+        InitContent();
         Refresh();
     }
 
@@ -223,9 +230,10 @@ public partial class NotchWindow : Window, INotchHost
 
         Recenter();
         if (_mode == Mode.Hidden) Rest();
-        if (OpenPanelOnLoad || OpenAgendaOnLoad)
+        if (OpenPanelOnLoad || OpenAgendaOnLoad || OpenHaditsOnLoad)
             Dispatcher.BeginInvoke(() =>
             {
+                if (OpenHaditsOnLoad) { ShowHadith(); return; }
                 ExpandPanel();
                 if (OpenAgendaOnLoad) TabAgenda.IsChecked = true;
             }, DispatcherPriority.ApplicationIdle);
@@ -259,12 +267,8 @@ public partial class NotchWindow : Window, INotchHost
         Dispatcher.BeginInvoke(Recenter, DispatcherPriority.Background);
     }
 
-    private void Recenter()
-    {
-        var area = SystemParameters.WorkArea;
-        Left = Math.Round(area.Left + (area.Width - Width) / 2);
-        Top = area.Top;
-    }
+    // Window position is owned by NotchWindow.Placement.cs (edge + horizontal position, dragging).
+    private void Recenter() => PositionWindow();
 
     private void EnsureShown()
     {
@@ -301,6 +305,7 @@ public partial class NotchWindow : Window, INotchHost
 
     private void Island_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (ConsumeDragClick()) return; // the press was a drag, not a click
         switch (_mode)
         {
             case Mode.Reminder: DismissReminder(); break;
@@ -313,6 +318,7 @@ public partial class NotchWindow : Window, INotchHost
         _hoverIntent.Stop();
         _leaveGrace.Stop();
         Refresh();
+        UpdatePanelHeight(); // not in Panel mode yet: only records the height GoTo unfolds to
         GoTo(Mode.Panel);
         // Only an explicit click lets the notch take focus, so keyboard and click-outside work.
         SetActivatable(true);
@@ -369,28 +375,6 @@ public partial class NotchWindow : Window, INotchHost
         if (NotchFormat.IsHttps(url)) Commands.OpenJoinUrl(url);
     }
 
-    private void Tab_Checked(object sender, RoutedEventArgs e)
-    {
-        if (SholatPage is null || AgendaPage is null) return; // fired during InitializeComponent
-        var agenda = TabAgenda.IsChecked == true;
-        var show = agenda ? AgendaPage : SholatPage;
-        var hide = agenda ? SholatPage : AgendaPage;
-        hide.Visibility = Visibility.Collapsed;
-        show.Visibility = Visibility.Visible;
-
-        var x = agenda ? SegmentThumb.ActualWidth : 0;
-        if (Motion)
-        {
-            SegmentShift.BeginAnimation(TranslateTransform.XProperty, Anim(x, 260, new BackEase { Amplitude = 0.25, EasingMode = EasingMode.EaseOut }));
-            show.BeginAnimation(OpacityProperty, Anim(1, 180, Soft, from: 0));
-            StaggerPage(agenda, 40);
-        }
-        else
-        {
-            SegmentShift.BeginAnimation(TranslateTransform.XProperty, null);
-            SegmentShift.X = x;
-        }
-    }
 
     // ---------------- reminders ----------------
 
@@ -406,25 +390,19 @@ public partial class NotchWindow : Window, INotchHost
         _hoverIntent.Stop();
         _leaveGrace.Stop();
 
-        var (accent, glyph, seconds) = r.Kind switch
-        {
-            ReminderKind.PrayerSoon => (SholatColor, "\uE823", 12), // clock
-            ReminderKind.PrayerNow => (SholatColor, "\uE708", 25),  // crescent
-            _ => (MeetingColor, "\uE787", 25),                      // calendar
-        };
+        var (accent, glyph, seconds) = ReminderLook(r);
         var accentBrush = Frozen(accent);
         ReminderIconBg.Fill = Frozen(accent, 0.16);
         ReminderIcon.Foreground = accentBrush;
         ReminderIcon.Text = glyph;
         ReminderTitle.Text = r.Title;
-        ReminderBody.Text = r.Body;
+        ReminderBody.Text = ReminderBodyText(r);
         ReminderProgress.Fill = Frozen(accent, 0.75);
+        ApplyReminderSource(r);
 
-        var join = r.Kind == ReminderKind.Meeting && NotchFormat.IsHttps(r.JoinUrl);
-        ReminderJoin.Visibility = join ? Visibility.Visible : Visibility.Collapsed;
-        ReminderBadge.Visibility = join ? Visibility.Collapsed : Visibility.Visible;
         ReminderBadge.Text = r.Badge ?? string.Empty;
         ReminderBadge.Foreground = accentBrush;
+        ApplyReminderSlot();
         AutomationProperties_SetName(r);
 
         var bar = Motion ? Visibility.Visible : Visibility.Collapsed;
@@ -476,14 +454,7 @@ public partial class NotchWindow : Window, INotchHost
         var playing = State.AdhanPlaying;
         var holds = AdhanHoldsReminder;
 
-        ReminderStop.Visibility = holds ? Visibility.Visible : Visibility.Collapsed;
-        if (holds) { ReminderBadge.Visibility = Visibility.Collapsed; ReminderJoin.Visibility = Visibility.Collapsed; }
-        else if (_reminder is { } r)
-        {
-            var join = r.Kind == ReminderKind.Meeting && NotchFormat.IsHttps(r.JoinUrl);
-            ReminderJoin.Visibility = join ? Visibility.Visible : Visibility.Collapsed;
-            ReminderBadge.Visibility = join ? Visibility.Collapsed : Visibility.Visible;
-        }
+        ApplyReminderSlot();
         AdhanWave.Visibility = holds ? Visibility.Visible : Visibility.Collapsed;
         ReminderIcon.Visibility = holds ? Visibility.Collapsed : Visibility.Visible;
         SetWave(holds && _mode == Mode.Reminder && Motion);
@@ -643,7 +614,7 @@ public partial class NotchWindow : Window, INotchHost
                 shift.BeginAnimation(TranslateTransform.YProperty, null);
                 shift.Y = 0;
                 Rise((FrameworkElement)PanelTop, delay + 120);
-                StaggerPage(TabAgenda.IsChecked == true, delay + 170);
+                StaggerPage(CurrentTab, delay + 170);
             }
             else shift.BeginAnimation(TranslateTransform.YProperty, Anim(0, 360, Soft, delay + 130, from: -6));
         }
@@ -697,16 +668,17 @@ public partial class NotchWindow : Window, INotchHost
     {
         // Above glance height the cap eases from 26 up to the panel's softer 30, so only the panel sheet changes.
         var h = Island.ActualHeight;
-        var t = Math.Clamp((h - GlanceSize.Height) / (PanelSize.Height - GlanceSize.Height), 0, 1);
+        // The ramp ends at the current panel height, so a short panel still reaches the sheet's 30 corner.
+        var t = Math.Clamp((h - GlanceSize.Height) / (_panelHeight - GlanceSize.Height), 0, 1);
         var r = Math.Min(h / 2, MaxCorner + (PanelCorner - MaxCorner) * t);
-        Island.CornerRadius = new CornerRadius(0, 0, r, r);
+        SetIslandCorners(r); // placement decides which edge gets the rounded corners
         Canvas.SetLeft(Stage, Math.Round((Island.ActualWidth - StageSize) / 2));
     }
 
     private Size SizeOf(Mode m) => m switch
     {
         Mode.Glance => State.AdhanPlaying ? GlanceAdhanSize : GlanceSize,
-        Mode.Panel => PanelSize,
+        Mode.Panel => new Size(PanelWidth, _panelHeight),
         Mode.Reminder => ReminderSize,
         _ => IdleSize,
     };
@@ -736,21 +708,6 @@ public partial class NotchWindow : Window, INotchHost
         }
         e.BeginAnimation(OpacityProperty, Anim(1, 200, Soft, delay, from: 0));
         shift.BeginAnimation(TranslateTransform.YProperty, Anim(0, 220, Soft, delay, from: 6));
-    }
-
-    /// <summary>Header first, then each row 25 ms after the previous one.</summary>
-    private void StaggerPage(bool agenda, int delay)
-    {
-        var list = agenda ? AgendaList : PrayerList;
-        Rise(agenda ? AgendaHeader : SholatHeader, delay);
-        if (!agenda)
-        {
-            Rise(TimelineTrack, delay + 40);
-            Rise(TimelineFill, delay + 40);
-        }
-        for (var i = 0; i < list.Items.Count; i++)
-            if (list.ItemContainerGenerator.ContainerFromIndex(i) is FrameworkElement row)
-                Rise(row, delay + 40 + i * 25);
     }
 
     private void PrayerList_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateTimeline();
@@ -818,17 +775,23 @@ public partial class NotchWindow : Window, INotchHost
 
     private void OnStateChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(NotchState.Today)) RebuildPrayerRows();
+        if (e.PropertyName is nameof(NotchState.Today) or nameof(NotchState.HiddenPrayers)) RebuildPrayerRows();
         if (e.PropertyName == nameof(NotchState.Agenda)) RebuildAgendaRows();
         if (e.PropertyName == nameof(NotchState.AdhanPlaying)) OnAdhanPlayingChanged();
+        if (e.PropertyName == nameof(NotchState.HabitsDone)) RebuildHabitRows();
         Refresh();
+        // Not on the 1 s Now tick: only content that changes the row/card count re-fits the panel.
+        if (e.PropertyName is nameof(NotchState.Today) or nameof(NotchState.HiddenPrayers) or nameof(NotchState.Agenda)
+            or nameof(NotchState.CalendarLoading) or nameof(NotchState.HabitsDone))
+            UpdatePanelHeight();
     }
 
     private void RebuildPrayerRows()
     {
         _prayerRows.Clear();
+        var hidden = State.HiddenPrayers ?? Array.Empty<Prayer>();
         if (State.Today?.Times is { } times)
-            foreach (var t in times.OrderBy(t => t.Time)) _prayerRows.Add(new PrayerRow(t));
+            foreach (var t in times.Where(t => !hidden.Contains(t.Prayer)).OrderBy(t => t.Time)) _prayerRows.Add(new PrayerRow(t));
     }
 
     private void RebuildAgendaRows()
@@ -898,14 +861,14 @@ public partial class NotchWindow : Window, INotchHost
             GlanceMeeting.Text = string.IsNullOrWhiteSpace(meeting.Subject) ? "(Tanpa judul)" : meeting.Subject;
             GlanceMeeting.Foreground = (Brush)FindResource("TextPrimary");
             var when = meeting.Start <= now ? "Sedang berlangsung" : NotchFormat.Hm(meeting.Start);
-            GlanceMeetingMeta.Text = $"{when} · {NotchFormat.SourceName(meeting.Source)}";
+            SetGlanceMeetingMeta(when, meeting.Source);
             _glanceJoinUrl = NotchFormat.IsHttps(meeting.JoinUrl) ? meeting.JoinUrl : null;
         }
         else
         {
             GlanceMeeting.Text = State.CalendarLoading ? "Memuat agenda…" : "Tidak ada meeting lagi hari ini";
             GlanceMeeting.Foreground = (Brush)FindResource("TextSecondary");
-            GlanceMeetingMeta.Text = string.Empty;
+            SetGlanceMeetingMeta(string.Empty, null);
             _glanceJoinUrl = null;
         }
         GlanceJoin.Visibility = _glanceJoinUrl is null ? Visibility.Collapsed : Visibility.Visible;
@@ -949,5 +912,8 @@ public partial class NotchWindow : Window, INotchHost
             AgendaEmptyTitle.Text = "Tidak ada agenda hari ini";
             AgendaEmptyBody.Text = "Waktunya fokus";
         }
+
+        // panel: hadits
+        RefreshHadith();
     }
 }

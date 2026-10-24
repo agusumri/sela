@@ -683,6 +683,53 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Ibadah harian -->
+                <Border Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="Ibadah harian" Style="{StaticResource SectionTitle}" Margin="0,0,0,8" />
+
+                        <CheckBox x:Name="HabitToggle" Content="Ingatkan dzikir dan sholawat"
+                                  Style="{StaticResource Switch}" Checked="OnHabitToggled" Unchecked="OnHabitToggled" />
+
+                        <StackPanel x:Name="HabitOptions" Margin="0,8,0,0">
+                            <WrapPanel>
+                                <CheckBox x:Name="HDzikirPagi" Style="{StaticResource Chip}"
+                                          AutomationProperties.Name="Dzikir pagi" AutomationProperties.HelpText="Setelah Subuh">
+                                    <StackPanel>
+                                        <TextBlock Text="Dzikir pagi" />
+                                        <TextBlock Text="setelah Subuh" FontSize="11" Foreground="#8A8A8A" />
+                                    </StackPanel>
+                                </CheckBox>
+                                <CheckBox x:Name="HSholawat" Style="{StaticResource Chip}"
+                                          AutomationProperties.Name="Sholawat" AutomationProperties.HelpText="Siang, setelah Dzuhur">
+                                    <StackPanel>
+                                        <TextBlock Text="Sholawat" />
+                                        <TextBlock Text="siang, setelah Dzuhur" FontSize="11" Foreground="#8A8A8A" />
+                                    </StackPanel>
+                                </CheckBox>
+                                <CheckBox x:Name="HDzikirPetang" Style="{StaticResource Chip}"
+                                          AutomationProperties.Name="Dzikir petang" AutomationProperties.HelpText="Setelah Ashar">
+                                    <StackPanel>
+                                        <TextBlock Text="Dzikir petang" />
+                                        <TextBlock Text="setelah Ashar" FontSize="11" Foreground="#8A8A8A" />
+                                    </StackPanel>
+                                </CheckBox>
+                            </WrapPanel>
+                            <TextBlock Text="Sela bertanya sekali di tiap waktu. Pilih Sudah atau Nanti."
+                                       Style="{StaticResource Hint}" Margin="2,0,0,0" />
+                        </StackPanel>
+
+                        <CheckBox x:Name="HadithToggle" Style="{StaticResource Switch}" Margin="0,12,0,4"
+                                  AutomationProperties.Name="Tampilkan hadits harian"
+                                  AutomationProperties.HelpText="Satu hadits Arbain Nawawi tiap pagi, dari myquran.com">
+                            <StackPanel>
+                                <TextBlock Text="Tampilkan hadits harian" />
+                                <TextBlock Text="Satu hadits Arbain Nawawi tiap pagi, dari myquran.com" Style="{StaticResource Hint}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </CheckBox>
+                    </StackPanel>
+                </Border>
+
                 <!-- Meeting -->
                 <Border Style="{StaticResource CardBorder}">
                     <StackPanel>

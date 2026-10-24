@@ -93,7 +93,8 @@ public sealed class ReminderScheduler
             var when = n > 0 ? $"mulai {n} menit lagi" : "mulai sekarang";
             var body = $"{Hm(e.Start)}–{Hm(e.End)} · {when}";
             if (!string.IsNullOrWhiteSpace(e.Location)) body += $" · {e.Location}";
-            due.Add(new Reminder($"meeting|{e.Key}", ReminderKind.Meeting, e.Subject, body, Hm(e.Start), e.JoinUrl, remindAt));
+            due.Add(new Reminder($"meeting|{e.Key}", ReminderKind.Meeting, e.Subject, body, Hm(e.Start), e.JoinUrl, remindAt,
+                Source: e.Source));
         }
     }
 

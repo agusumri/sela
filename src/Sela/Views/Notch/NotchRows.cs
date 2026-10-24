@@ -57,9 +57,27 @@ public sealed class AgendaRow : NotchRow
     public string? Location => string.IsNullOrWhiteSpace(Event.Location) ? null : Event.Location.Trim();
     public bool HasLocation => Location is not null;
     public string SourceText => NotchFormat.SourceName(Event.Source);
+    public string SourceGlyph => NotchFormat.SourceGlyph(Event.Source);
+    public string SourceLabel => $"Dari {SourceText}";
+    public bool IsGoogle => Event.Source == CalendarSource.Google;
     public string? JoinUrl { get; }
     public bool HasJoin => JoinUrl is not null;
 
     public bool IsNow { get => _isNow; set => Set(ref _isNow, value); }
     public bool IsPast { get => _isPast; set => Set(ref _isPast, value); }
+}
+
+/// <summary>One pill in the "ibadah hari ini" strip. Immutable: the strip is rebuilt when NotchState.HabitsDone is replaced.</summary>
+public sealed class HabitRow : NotchRow
+{
+    public HabitRow(Habit habit, bool done)
+    {
+        Habit = habit;
+        Done = done;
+    }
+
+    public Habit Habit { get; }
+    public bool Done { get; }
+    public string Name => NotchFormat.HabitName(Habit);
+    public string Hint => Done ? $"{Name}: sudah" : $"Tandai {Name} sudah";
 }

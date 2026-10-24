@@ -58,6 +58,7 @@ public partial class SettingsWindow : Window
 
         LoadFromSettings(startWithWindows);
         LoadAdhan();
+        LoadHabits();
         UpdatePreviewIcons();
 
         PreviewKeyDown += OnWindowKeyDown;
@@ -117,7 +118,44 @@ public partial class SettingsWindow : Window
         AdhanVolume = s.AdhanVolume,
         AdhanFile = s.AdhanFile,
         AdhanSubuhFile = s.AdhanSubuhFile,
+        HabitRemindersEnabled = s.HabitRemindersEnabled,
+        HabitEnabled = s.HabitEnabled is null ? new() : new Dictionary<Habit, bool>(s.HabitEnabled),
+        DailyHadithCard = s.DailyHadithCard,
     };
+
+    // ---------- Ibadah harian ----------
+
+    private Dictionary<Habit, CheckBox> HabitBoxes => new()
+    {
+        [Habit.DzikirPagi] = HDzikirPagi, [Habit.Sholawat] = HSholawat, [Habit.DzikirPetang] = HDzikirPetang,
+    };
+
+    private void LoadHabits()
+    {
+        HabitToggle.IsChecked = _settings.HabitRemindersEnabled;
+        foreach (var (habit, box) in HabitBoxes)
+            box.IsChecked = _settings.HabitEnabled.TryGetValue(habit, out var on) && on;
+        HadithToggle.IsChecked = _settings.DailyHadithCard;
+        UpdateHabitEnabled();
+    }
+
+    private void SaveHabits()
+    {
+        _settings.HabitRemindersEnabled = HabitToggle.IsChecked == true;
+        foreach (var (habit, box) in HabitBoxes)
+            _settings.HabitEnabled[habit] = box.IsChecked == true;
+        _settings.DailyHadithCard = HadithToggle.IsChecked == true;
+    }
+
+    private void OnHabitToggled(object sender, RoutedEventArgs e) => UpdateHabitEnabled();
+
+    private void UpdateHabitEnabled()
+    {
+        if (HabitOptions is null) return; // fires during InitializeComponent
+        var on = HabitToggle.IsChecked == true;
+        HabitOptions.IsEnabled = on;
+        HabitOptions.Opacity = on ? 1 : 0.4;
+    }
 
     // ---------- Adzan ----------
 
@@ -513,6 +551,7 @@ public partial class SettingsWindow : Window
         _settings.StartWithWindows = autostart;
         _ui.NotchAlwaysVisible = IdleToggle.IsChecked == true;
         SaveAdhan();
+        SaveHabits();
 
         Saved?.Invoke(_settings, _ui, autostart);
         Close();

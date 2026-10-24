@@ -49,6 +49,19 @@ public static class MockData
         };
     }
 
+    /// <summary>Arbain no. 1 as the fixed hadith of the day.</summary>
+    public static Hadith Hadith(DateOnly date) => new(
+        "Arbain Nawawi", 1, "Amalan Bergantung pada Niat",
+        "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى",
+        "Sesungguhnya setiap amalan tergantung pada niatnya, dan setiap orang akan mendapatkan sesuai dengan apa yang ia niatkan. (HR. Bukhari dan Muslim)",
+        date);
+
+    /// <summary>Morning dzikir done, the rest still open.</summary>
+    public static IReadOnlyDictionary<Habit, bool> HabitsDone() => new Dictionary<Habit, bool>
+    {
+        [Habit.DzikirPagi] = true, [Habit.Sholawat] = false, [Habit.DzikirPetang] = false,
+    };
+
     private static DateTime Clamp(DateTime value, DateTime min, DateTime max) =>
         value < min ? min : value > max ? max : value;
 }

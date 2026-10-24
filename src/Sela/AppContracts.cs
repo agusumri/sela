@@ -34,6 +34,18 @@ public sealed class NotchState : INotifyPropertyChanged
     /// <summary>True while the adzan is sounding; the notch shows a stop control.</summary>
     public bool AdhanPlaying { get => _adhanPlaying; set => Set(ref _adhanPlaying, value); }
 
+    private Hadith? _hadith;
+    private bool _hadithLoading;
+    private IReadOnlyDictionary<Habit, bool> _habitsDone = new Dictionary<Habit, bool>();
+    /// <summary>Today's hadith for the panel's "Hadits" tab; null when not loaded yet / offline.</summary>
+    public Hadith? Hadith { get => _hadith; set => Set(ref _hadith, value); }
+    public bool HadithLoading { get => _hadithLoading; set => Set(ref _hadithLoading, value); }
+    private IReadOnlyCollection<Prayer> _hiddenPrayers = Array.Empty<Prayer>();
+    /// <summary>Times left out of the panel's schedule list (optional times switched off in Pengaturan). Replace to notify.</summary>
+    public IReadOnlyCollection<Prayer> HiddenPrayers { get => _hiddenPrayers; set => Set(ref _hiddenPrayers, value); }
+    /// <summary>Which enabled habits are done today (for the panel's check-in row). Replace the whole map to notify.</summary>
+    public IReadOnlyDictionary<Habit, bool> HabitsDone { get => _habitsDone; set => Set(ref _habitsDone, value); }
+
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
     {
@@ -52,7 +64,16 @@ public interface IAppCommands
     void RefreshNow();
     /// <summary>Stops the adzan if it is playing (e.g. the stop button on the reminder card).</summary>
     void StopAdhan();
+    /// <summary>"Sudah": records the habit as done today and updates NotchState.HabitsDone.</summary>
+    void MarkHabitDone(Habit habit);
+    /// <summary>"Nanti": asks again in 30 minutes (within the habit's window).</summary>
+    void SnoozeHabit(Habit habit);
+    /// <summary>Persists where the user dragged the notch (ui.json).</summary>
+    void SaveNotchPlacement(NotchEdge edge, double x);
 }
+
+/// <summary>Screen edge the notch hangs from.</summary>
+public enum NotchEdge { Top, Bottom }
 
 /// <summary>Implemented by Views.NotchWindow.</summary>
 public interface INotchHost
@@ -67,6 +88,12 @@ public interface INotchHost
 public sealed class UiSettings
 {
     public bool NotchAlwaysVisible { get; set; } = true;
+    /// <summary>Edge of the primary work area the notch hangs from.</summary>
+    public NotchEdge NotchEdge { get; set; } = NotchEdge.Top;
+    /// <summary>Horizontal center of the notch as a fraction of the work-area width (0 = left, 0.5 = center, 1 = right).</summary>
+    public double NotchX { get; set; } = 0.5;
+    /// <summary>Day the "Hadits hari ini" card was last shown, so it appears once per day.</summary>
+    public DateOnly? LastHadithCardDate { get; set; }
 }
 
 /// <summary>

@@ -11,12 +11,14 @@ public sealed class TrayIcon : IDisposable
     private readonly Forms.NotifyIcon _icon;
     private readonly System.Drawing.Icon? _ownedIcon;
 
-    public TrayIcon(IAppCommands commands, Action showPanel, Action testNotify, Action exit,
-        Func<bool> isMuted, Action<bool> setMuted, Func<bool> isAdhanPlaying)
+    public TrayIcon(IAppCommands commands, Action showPanel, Action showHadith, Action resetPlacement,
+        Action testNotify, Action exit, Func<bool> isMuted, Action<bool> setMuted, Func<bool> isAdhanPlaying)
     {
         _ownedIcon = LoadIcon();
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Jadwal & agenda", null, (_, _) => showPanel());
+        menu.Items.Add("Hadits hari ini", null, (_, _) => showHadith());
+        menu.Items.Add("Kembalikan posisi notch", null, (_, _) => resetPlacement());
         menu.Items.Add("Pengaturan", null, (_, _) => commands.OpenSettings());
         menu.Items.Add("Tes notifikasi", null, (_, _) => testNotify());
         var mute = new Forms.ToolStripMenuItem("Bisukan adzan") { CheckOnClick = true };
