@@ -1,0 +1,10 @@
+adhan.mp3
+  Source:  https://commons.wikimedia.org/wiki/File:Adhan.ogg
+  Author:  Aishatu98 (own work, uploaded 2026-07-15)
+  License: CC0 1.0 Universal Public Domain Dedication (no attribution required)
+  Changes: converted from Ogg Vorbis to MP3 160 kbps stereo, loudness-normalised
+           (EBU R128, -16 LUFS), 1.5 s fade-out at the end.
+  Original SHA-256: FAEB03E4338554FB8B54DBA98ED4949648615B58E991BBD560A89F4837DDE413
+
+No Subuh-specific adzan is bundled: no clearly licensed recording was found.
+Subuh uses adhan.mp3 unless the user picks their own file in Pengaturan > Adzan.

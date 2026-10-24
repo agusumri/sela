@@ -1,0 +1,554 @@
+<Window x:Class="Sela.Views.NotchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:n="clr-namespace:Sela.Views.Notch"
+        Title="Sela" Width="520" Height="480"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent" ResizeMode="NoResize"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False" Foreground="#F5F5F7"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal" TextOptions.TextRenderingMode="Grayscale">
+  <Window.Resources>
+    <!-- palette -->
+    <Color x:Key="SholatColor">#3DDC97</Color>
+    <Color x:Key="MeetingColor">#4C9BFF</Color>
+    <SolidColorBrush x:Key="Ink" Color="#000000"/>
+    <SolidColorBrush x:Key="Surface" Color="#0F0F11"/>
+    <SolidColorBrush x:Key="SurfaceRaised" Color="#1A1A1D"/>
+    <SolidColorBrush x:Key="Hairline" Color="#1E1E22"/>
+    <SolidColorBrush x:Key="TextPrimary" Color="#F5F5F7"/>
+    <SolidColorBrush x:Key="TextSecondary" Color="#9C9CA3"/>
+    <SolidColorBrush x:Key="TextTertiary" Color="#6B6B73"/>
+    <SolidColorBrush x:Key="Sholat" Color="{StaticResource SholatColor}"/>
+    <SolidColorBrush x:Key="SholatSoft" Color="{StaticResource SholatColor}" Opacity="0.13"/>
+    <SolidColorBrush x:Key="SholatChip" Color="{StaticResource SholatColor}" Opacity="0.2"/>
+    <SolidColorBrush x:Key="Meeting" Color="{StaticResource MeetingColor}"/>
+    <SolidColorBrush x:Key="MeetingSoft" Color="{StaticResource MeetingColor}" Opacity="0.09"/>
+    <SolidColorBrush x:Key="MeetingEdge" Color="{StaticResource MeetingColor}" Opacity="0.45"/>
+
+    <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
+    <FontFamily x:Key="TextFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+    <Style x:Key="FocusRing">
+      <Setter Property="Control.Template">
+        <Setter.Value>
+          <ControlTemplate>
+            <Border Margin="-3" CornerRadius="16" BorderThickness="1.5" BorderBrush="#E6FFFFFF"/>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource TextFont}"/>
+      <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+    </Style>
+
+    <Style x:Key="Icon" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- solid pill, used for Join (blue) and Coba lagi (green) -->
+    <Style x:Key="PillButton" TargetType="Button">
+      <Setter Property="Background" Value="{StaticResource Meeting}"/>
+      <Setter Property="Foreground" Value="#FFFFFF"/>
+      <Setter Property="FontFamily" Value="{StaticResource TextFont}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Padding" Value="16,6"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" CornerRadius="14" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.86"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.7"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- green outline pill: stop the adzan without leaving the card -->
+    <Style x:Key="OutlineButton" TargetType="Button">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource Sholat}"/>
+      <Setter Property="BorderBrush" Value="#993DDC97"/>
+      <Setter Property="FontFamily" Value="{StaticResource TextFont}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Padding" Value="11,5,13,5"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" CornerRadius="14" Padding="{TemplateBinding Padding}" BorderThickness="1"
+                    BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="B" Property="Background" Value="{StaticResource SholatSoft}"/>
+                <Setter TargetName="B" Property="BorderBrush" Value="{StaticResource Sholat}"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.7"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- quiet round icon button (settings) -->
+    <Style x:Key="GhostButton" TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Width" Value="28"/>
+      <Setter Property="Height" Value="28"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" CornerRadius="14" Background="Transparent">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="B" Property="Background" Value="{StaticResource SurfaceRaised}"/>
+                <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.7"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- one half of the Sholat | Agenda switch; the sliding thumb lives behind both -->
+    <Style x:Key="Segment" TargetType="RadioButton">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+      <Setter Property="FontFamily" Value="{StaticResource TextFont}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="GroupName" Value="NotchTabs"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border Background="Transparent">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#D0D0D6"/></Trigger>
+              <Trigger Property="IsChecked" Value="True"><Setter Property="Foreground" Value="{StaticResource TextPrimary}"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Prayer row: a dot on the day's timeline, name, and a right-aligned tabular time.
+         The dot column is 30 wide so every dot centers on x=15, where the timeline line runs. -->
+    <DataTemplate DataType="{x:Type n:PrayerRow}">
+      <Border x:Name="Row" Height="36" CornerRadius="18" Padding="0,0,14,0" Background="Transparent" BorderThickness="1"
+              BorderBrush="Transparent">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="30"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <Ellipse x:Name="Halo" Width="14" Height="14" Fill="{StaticResource SholatChip}" Visibility="Collapsed"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          <Ellipse x:Name="Dot" Width="7" Height="7" Fill="#3A3A40" Stroke="#000000" StrokeThickness="0"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          <TextBlock x:Name="Name" Grid.Column="1" Text="{Binding Name}" FontSize="14" FontWeight="Medium" VerticalAlignment="Center"
+                     Margin="4,0,0,1"/>
+          <Border x:Name="Chip" Grid.Column="2" Visibility="Collapsed" CornerRadius="10" Padding="8,2"
+                  Background="{StaticResource SholatChip}" Margin="0,0,10,0" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Countdown}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Sholat}"
+                       Typography.NumeralAlignment="Tabular"/>
+          </Border>
+          <TextBlock x:Name="Time" Grid.Column="3" Text="{Binding TimeText}" FontSize="14" VerticalAlignment="Center"
+                     FontFamily="{StaticResource DisplayFont}" Typography.NumeralAlignment="Tabular" Margin="0,0,0,1"/>
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding IsSecondary}" Value="True">
+          <Setter TargetName="Row" Property="Height" Value="28"/>
+          <Setter TargetName="Dot" Property="Width" Value="5"/>
+          <Setter TargetName="Dot" Property="Height" Value="5"/>
+          <Setter TargetName="Dot" Property="Fill" Value="#2E2E34"/>
+          <Setter TargetName="Name" Property="FontSize" Value="12.5"/>
+          <Setter TargetName="Name" Property="FontWeight" Value="Normal"/>
+          <Setter TargetName="Time" Property="FontSize" Value="12.5"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IsPassed}" Value="True">
+          <Setter TargetName="Row" Property="Opacity" Value="0.7"/>
+          <Setter TargetName="Dot" Property="Fill" Value="#5E5E66"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IsNext}" Value="True">
+          <Setter TargetName="Row" Property="Background">
+            <Setter.Value>
+              <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                <GradientStop Color="#2A3DDC97" Offset="0"/>
+                <GradientStop Color="#123DDC97" Offset="1"/>
+              </LinearGradientBrush>
+            </Setter.Value>
+          </Setter>
+          <Setter TargetName="Row" Property="BorderBrush" Value="#263DDC97"/>
+          <Setter TargetName="Halo" Property="Visibility" Value="Visible"/>
+          <Setter TargetName="Dot" Property="Fill" Value="{StaticResource Sholat}"/>
+          <Setter TargetName="Dot" Property="Effect">
+            <Setter.Value>
+              <DropShadowEffect Color="{StaticResource SholatColor}" BlurRadius="10" ShadowDepth="0" Opacity="0.9"/>
+            </Setter.Value>
+          </Setter>
+          <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Sholat}"/>
+          <Setter TargetName="Name" Property="FontWeight" Value="SemiBold"/>
+          <Setter TargetName="Time" Property="Foreground" Value="{StaticResource Sholat}"/>
+          <Setter TargetName="Time" Property="FontWeight" Value="SemiBold"/>
+          <Setter TargetName="Chip" Property="Visibility" Value="Visible"/>
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type n:AgendaRow}">
+      <Border x:Name="Card" CornerRadius="18" Background="#0E0E10" BorderBrush="Transparent"
+              BorderThickness="1" Padding="14,11" Margin="0,0,0,8">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="44"/><ColumnDefinition Width="2"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding StartText}" FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"
+                       Typography.NumeralAlignment="Tabular"/>
+            <TextBlock Text="{Binding EndText}" FontSize="11.5" Foreground="{StaticResource TextTertiary}" Margin="0,1,0,0"
+                       Typography.NumeralAlignment="Tabular"/>
+          </StackPanel>
+          <Rectangle Grid.Column="1" RadiusX="1" RadiusY="1" Fill="{StaticResource Meeting}" Opacity="0.85" Margin="0,4"/>
+          <StackPanel Grid.Column="2" Margin="12,0,10,0" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Subject}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding Subject}"/>
+            <DockPanel Margin="0,4,0,0" LastChildFill="True">
+              <Border DockPanel.Dock="Left" CornerRadius="6" Padding="6,1" Background="{StaticResource SurfaceRaised}" VerticalAlignment="Center">
+                <TextBlock Text="{Binding SourceText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondary}"/>
+              </Border>
+              <TextBlock x:Name="Loc" Margin="8,0,0,0" FontSize="11.5" Foreground="{StaticResource TextTertiary}"
+                         TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Location}">
+                <Run Text="&#xE707;" FontFamily="{StaticResource IconFont}" FontSize="10"/>
+                <Run Text="{Binding Location, Mode=OneWay}"/>
+              </TextBlock>
+            </DockPanel>
+          </StackPanel>
+          <Button x:Name="Join" Grid.Column="3" Style="{StaticResource PillButton}" Padding="14,5" Content="Join"
+                  Tag="{Binding JoinUrl}" Click="AgendaJoin_Click" Visibility="Collapsed"
+                  AutomationProperties.Name="{Binding Subject, StringFormat='Join {0}'}"/>
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding HasJoin}" Value="True">
+          <Setter TargetName="Join" Property="Visibility" Value="Visible"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HasLocation}" Value="False">
+          <Setter TargetName="Loc" Property="Visibility" Value="Collapsed"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IsNow}" Value="True">
+          <Setter TargetName="Card" Property="Background" Value="{StaticResource MeetingSoft}"/>
+          <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource MeetingEdge}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IsPast}" Value="True">
+          <Setter TargetName="Card" Property="Opacity" Value="0.45"/>
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+  </Window.Resources>
+
+  <Grid>
+    <StackPanel x:Name="Shape" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top"
+                MouseEnter="Shape_MouseEnter" MouseLeave="Shape_MouseLeave">
+      <StackPanel.Effect>
+        <DropShadowEffect x:Name="ShapeShadow" BlurRadius="28" ShadowDepth="6" Direction="270" Opacity="0.5" Color="#000000"/>
+      </StackPanel.Effect>
+      <!-- concave ears let the shape melt into the top edge -->
+      <Path Width="10" Height="10" VerticalAlignment="Top" Fill="{StaticResource Ink}" Data="M0,0 H10 V10 A10,10 0 0 0 0,0 Z"/>
+      <Border x:Name="Island" Background="{StaticResource Ink}" Width="214" Height="30" CornerRadius="0,0,15,15"
+              VerticalAlignment="Top" Cursor="Hand" ClipToBounds="True"
+              MouseLeftButtonUp="Island_MouseLeftButtonUp">
+        <!-- Stage is a fixed 420x420 surface kept centered inside the morphing island, so content never jumps -->
+        <Canvas x:Name="StageHost">
+          <Grid x:Name="Stage" Width="420" Height="420">
+
+            <!-- 1. idle pill -->
+            <Grid x:Name="IdleLayer" Width="214" Height="30" HorizontalAlignment="Center" VerticalAlignment="Top">
+              <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
+              <!-- mascot and text sit together as one centered group -->
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <n:SelaMascot x:Name="Mascot" Width="30" Height="30" Margin="0,0,4,0" VerticalAlignment="Center"
+                              IsHitTestVisible="False" Focusable="False"/>
+                <TextBlock x:Name="IdleText" FontSize="12" FontFamily="{StaticResource DisplayFont}"
+                           VerticalAlignment="Center" Margin="0,0,0,1"
+                           Typography.NumeralAlignment="Tabular">
+                  <Run x:Name="IdleName" FontWeight="SemiBold" Text="Sela"/><Run x:Name="IdleSep" Foreground="{StaticResource TextTertiary}" Text=""/><Run x:Name="IdleCountdown" Foreground="{StaticResource TextSecondary}" Text=""/>
+                </TextBlock>
+                <!-- static hint that the adzan is still sounding (stop it from the glance) -->
+                <TextBlock x:Name="IdleAdhan" Style="{StaticResource Icon}" Text="&#xE767;" FontSize="11" Margin="7,0,0,0"
+                           Foreground="{StaticResource Sholat}" Opacity="0.7" Visibility="Collapsed"/>
+              </StackPanel>
+            </Grid>
+
+            <!-- 2. glance -->
+            <Grid x:Name="GlanceLayer" Width="380" Height="132" HorizontalAlignment="Center" VerticalAlignment="Top"
+                  Opacity="0" Visibility="Collapsed">
+              <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
+              <Grid Margin="18,10,18,10">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="40"/><RowDefinition Height="Auto"/><RowDefinition Height="30"/><RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Button x:Name="GlanceStop" Grid.Row="3" Style="{StaticResource OutlineButton}" Margin="0,6,0,0" Padding="0,5"
+                        HorizontalAlignment="Stretch" Visibility="Collapsed" Click="StopAdhan_Click"
+                        ToolTip="Hentikan suara adzan" AutomationProperties.Name="Hentikan adzan">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE198;" FontSize="12" Foreground="{StaticResource Sholat}" Margin="0,0,7,0"/>
+                    <TextBlock Text="Hentikan adzan" Foreground="{StaticResource Sholat}" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <Grid Width="32" Height="32" VerticalAlignment="Center">
+                    <Ellipse Fill="{StaticResource SholatChip}"/>
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE708;" FontSize="15" Foreground="{StaticResource Sholat}"/>
+                  </Grid>
+                  <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="GlanceLabel" Text="Sholat berikutnya" FontSize="11" Foreground="{StaticResource TextTertiary}"/>
+                    <TextBlock FontFamily="{StaticResource DisplayFont}" Typography.NumeralAlignment="Tabular">
+                      <Run x:Name="GlancePrayer" Text="Sela" FontSize="15.5" FontWeight="SemiBold"/>
+                      <Run x:Name="GlancePrayerTime" Text="" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                    </TextBlock>
+                  </StackPanel>
+                  <TextBlock x:Name="GlanceCountdown" Grid.Column="2" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold"
+                             FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource Sholat}"
+                             Typography.NumeralAlignment="Tabular"/>
+                </Grid>
+                <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource Hairline}" Margin="0,5,0,0"/>
+                <Grid Grid.Row="2" VerticalAlignment="Center">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Icon}" Text="&#xE787;" FontSize="13" Foreground="{StaticResource Meeting}"
+                             Width="32" HorizontalAlignment="Left"/>
+                  <TextBlock x:Name="GlanceMeeting" Grid.Column="1" Margin="12,0,8,0" FontSize="12.5" VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis"/>
+                  <TextBlock x:Name="GlanceMeetingMeta" Grid.Column="2" FontSize="11.5" VerticalAlignment="Center"
+                             Foreground="{StaticResource TextSecondary}" Typography.NumeralAlignment="Tabular"/>
+                  <Button x:Name="GlanceJoin" Grid.Column="3" Style="{StaticResource PillButton}" Content="Join" Padding="12,3"
+                          FontSize="11.5" Margin="10,0,0,0" Visibility="Collapsed" Focusable="False" Click="GlanceJoin_Click"
+                          ToolTip="Buka link meeting"/>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <!-- 3. panel -->
+            <Grid x:Name="PanelLayer" Width="344" Height="412" HorizontalAlignment="Center" VerticalAlignment="Top"
+                  Opacity="0" Visibility="Collapsed" Cursor="Arrow">
+              <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
+              <!-- sheet surface: a faint top-to-bottom lift and a hairline that follows the rounded bottom edge -->
+              <Border CornerRadius="0,0,30,30" BorderThickness="0,0,0,1" IsHitTestVisible="False">
+                <Border.Background>
+                  <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#000000" Offset="0"/>
+                    <GradientStop Color="#000000" Offset="0.35"/>
+                    <GradientStop Color="#0C0C0E" Offset="1"/>
+                  </LinearGradientBrush>
+                </Border.Background>
+                <Border.BorderBrush>
+                  <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#00FFFFFF" Offset="0"/>
+                    <GradientStop Color="#24FFFFFF" Offset="0.5"/>
+                    <GradientStop Color="#00FFFFFF" Offset="1"/>
+                  </LinearGradientBrush>
+                </Border.BorderBrush>
+              </Border>
+              <Grid Margin="20,14,20,22">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/><RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- top bar: centered segmented switch, quiet settings on the right -->
+                <Grid x:Name="PanelTop">
+                  <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
+                  <Border Width="172" Height="30" CornerRadius="15" Background="#141417" BorderBrush="#1C1C20" BorderThickness="1"
+                          Padding="2" HorizontalAlignment="Center">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                      <Border x:Name="SegmentThumb" CornerRadius="12.5" Background="#2A2A30">
+                        <Border.Effect>
+                          <DropShadowEffect BlurRadius="6" ShadowDepth="1" Direction="270" Opacity="0.5" Color="#000000"/>
+                        </Border.Effect>
+                        <Border.RenderTransform><TranslateTransform x:Name="SegmentShift"/></Border.RenderTransform>
+                      </Border>
+                      <RadioButton x:Name="TabSholat" Style="{StaticResource Segment}" FontSize="12" Content="Sholat" IsChecked="True" Checked="Tab_Checked"/>
+                      <RadioButton x:Name="TabAgenda" Grid.Column="1" Style="{StaticResource Segment}" FontSize="12" Content="Agenda" Checked="Tab_Checked"/>
+                    </Grid>
+                  </Border>
+                  <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Right" Margin="0,0,-4,0" Click="Settings_Click"
+                          ToolTip="Pengaturan" AutomationProperties.Name="Pengaturan">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" FontSize="13"/>
+                  </Button>
+                </Grid>
+
+                <!-- Sholat -->
+                <Grid x:Name="SholatPage" Grid.Row="1" Margin="0,16,0,0">
+                  <Grid x:Name="SholatContent">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid x:Name="SholatHeader" Margin="4,0,4,12">
+                      <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <StackPanel>
+                        <TextBlock x:Name="CityText" FontSize="17" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="GregorianText" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
+                      </StackPanel>
+                      <TextBlock x:Name="HijriText" Grid.Column="1" FontSize="12" Foreground="{StaticResource Sholat}" Opacity="0.85"
+                                 VerticalAlignment="Bottom" Margin="12,0,0,0"/>
+                    </Grid>
+                    <!-- the day as a thin timeline: track through every dot, green fill up to the next prayer -->
+                    <Grid Grid.Row="1">
+                      <Canvas IsHitTestVisible="False">
+                        <Rectangle x:Name="TimelineTrack" Width="2" RadiusX="1" RadiusY="1" Fill="#1F1F24" Canvas.Left="15"/>
+                        <Rectangle x:Name="TimelineFill" Width="2" RadiusX="1" RadiusY="1" Canvas.Left="15">
+                          <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                              <GradientStop Color="#003DDC97" Offset="0"/>
+                              <GradientStop Color="#993DDC97" Offset="1"/>
+                            </LinearGradientBrush>
+                          </Rectangle.Fill>
+                        </Rectangle>
+                      </Canvas>
+                      <ItemsControl x:Name="PrayerList" Focusable="False" IsTabStop="False" SizeChanged="PrayerList_SizeChanged"/>
+                    </Grid>
+                  </Grid>
+                  <StackPanel x:Name="SholatEmpty" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed"
+                              Margin="0,0,0,24">
+                    <Grid Width="52" Height="52" HorizontalAlignment="Center">
+                      <Ellipse Fill="{StaticResource SurfaceRaised}"/>
+                      <TextBlock Style="{StaticResource Icon}" Text="&#xEB55;" FontSize="20" Foreground="{StaticResource TextSecondary}"/>
+                    </Grid>
+                    <TextBlock Text="Jadwal belum tersedia" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                    <TextBlock Text="Cek koneksi internet" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
+                               HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                    <Button Style="{StaticResource PillButton}" Background="{StaticResource Sholat}" Foreground="#000000"
+                            Content="Coba lagi" HorizontalAlignment="Center" Margin="0,16,0,0" Click="Retry_Click"/>
+                  </StackPanel>
+                </Grid>
+
+                <!-- Agenda -->
+                <Grid x:Name="AgendaPage" Grid.Row="1" Margin="0,16,0,0" Visibility="Collapsed">
+                  <Grid x:Name="AgendaContent">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid x:Name="AgendaHeader" Margin="4,0,4,12">
+                      <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <StackPanel>
+                        <TextBlock Text="Hari ini" FontSize="17" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"/>
+                        <TextBlock x:Name="AgendaDate" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
+                      </StackPanel>
+                      <TextBlock x:Name="AgendaCount" Grid.Column="1" FontSize="12" Foreground="{StaticResource Meeting}"
+                                 VerticalAlignment="Bottom"/>
+                    </Grid>
+                    <!-- long lists dissolve into the bottom curve instead of being cut off -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" Focusable="False" PanningMode="VerticalOnly">
+                      <ScrollViewer.OpacityMask>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                          <GradientStop Color="#FF000000" Offset="0"/>
+                          <GradientStop Color="#FF000000" Offset="0.9"/>
+                          <GradientStop Color="#00000000" Offset="1"/>
+                        </LinearGradientBrush>
+                      </ScrollViewer.OpacityMask>
+                      <ItemsControl x:Name="AgendaList" Focusable="False" IsTabStop="False"/>
+                    </ScrollViewer>
+                  </Grid>
+                  <StackPanel x:Name="AgendaEmpty" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed"
+                              Margin="0,0,0,24">
+                    <Grid Width="52" Height="52" HorizontalAlignment="Center">
+                      <Ellipse Fill="{StaticResource SurfaceRaised}"/>
+                      <TextBlock x:Name="AgendaEmptyIcon" Style="{StaticResource Icon}" Text="&#xE787;" FontSize="20"
+                                 Foreground="{StaticResource Meeting}"/>
+                    </Grid>
+                    <TextBlock x:Name="AgendaEmptyTitle" Text="Tidak ada agenda hari ini" FontSize="15" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                    <TextBlock x:Name="AgendaEmptyBody" Text="Waktunya fokus" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
+                               HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                  </StackPanel>
+                </Grid>
+
+              </Grid>
+            </Grid>
+
+            <!-- 4. reminder card -->
+            <Grid x:Name="ReminderLayer" Width="380" Height="92" HorizontalAlignment="Center" VerticalAlignment="Top"
+                  Opacity="0" Visibility="Collapsed">
+              <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
+              <Grid Margin="20,12,18,0" Height="56" VerticalAlignment="Top">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid Width="40" Height="40" VerticalAlignment="Center">
+                  <Ellipse x:Name="ReminderIconBg"/>
+                  <TextBlock x:Name="ReminderIcon" Style="{StaticResource Icon}" FontSize="18"/>
+                  <!-- while the adzan sounds the crescent gives way to three slow sound bars -->
+                  <StackPanel x:Name="AdhanWave" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Height="16" Visibility="Collapsed" IsHitTestVisible="False">
+                    <Rectangle Width="3" Height="16" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource Sholat}" RenderTransformOrigin="0.5,0.5">
+                      <Rectangle.RenderTransform><ScaleTransform x:Name="Wave1" ScaleY="0.45"/></Rectangle.RenderTransform>
+                    </Rectangle>
+                    <Rectangle Width="3" Height="16" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource Sholat}" Margin="3,0" RenderTransformOrigin="0.5,0.5">
+                      <Rectangle.RenderTransform><ScaleTransform x:Name="Wave2" ScaleY="0.85"/></Rectangle.RenderTransform>
+                    </Rectangle>
+                    <Rectangle Width="3" Height="16" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource Sholat}" RenderTransformOrigin="0.5,0.5">
+                      <Rectangle.RenderTransform><ScaleTransform x:Name="Wave3" ScaleY="0.6"/></Rectangle.RenderTransform>
+                    </Rectangle>
+                  </StackPanel>
+                </Grid>
+                <StackPanel Grid.Column="1" Margin="12,0,10,0" VerticalAlignment="Center">
+                  <TextBlock x:Name="ReminderTitle" FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="14.5"
+                             TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Assertive"/>
+                  <TextBlock x:Name="ReminderBody" Foreground="{StaticResource TextSecondary}" FontSize="12" LineHeight="16"
+                             MaxHeight="32" Margin="0,2,0,0" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <TextBlock x:Name="ReminderBadge" Grid.Column="2" VerticalAlignment="Center" FontFamily="{StaticResource DisplayFont}"
+                           FontWeight="SemiBold" FontSize="20" Typography.NumeralAlignment="Tabular"/>
+                <Button x:Name="ReminderJoin" Grid.Column="2" Style="{StaticResource PillButton}" Content="Join" Visibility="Collapsed"
+                        Focusable="False" Click="ReminderJoin_Click" ToolTip="Buka link meeting"/>
+                <Button x:Name="ReminderStop" Grid.Column="2" Style="{StaticResource OutlineButton}" Visibility="Collapsed"
+                        Click="StopAdhan_Click" ToolTip="Hentikan suara adzan" AutomationProperties.Name="Hentikan adzan">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE198;" FontSize="12" Foreground="{StaticResource Sholat}" Margin="0,0,6,0"/>
+                    <TextBlock Text="Hentikan" Foreground="{StaticResource Sholat}" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+              </Grid>
+              <Rectangle x:Name="ReminderTrack" VerticalAlignment="Bottom" Height="3" Margin="30,0,30,10" RadiusX="1.5" RadiusY="1.5"
+                         Fill="#1C1C20"/>
+              <Rectangle x:Name="ReminderProgress" VerticalAlignment="Bottom" Height="3" Margin="30,0,30,10" RadiusX="1.5" RadiusY="1.5"
+                         RenderTransformOrigin="0,0.5">
+                <Rectangle.RenderTransform><ScaleTransform x:Name="ReminderProgressScale" ScaleX="1"/></Rectangle.RenderTransform>
+              </Rectangle>
+            </Grid>
+
+          </Grid>
+        </Canvas>
+      </Border>
+      <Path Width="10" Height="10" VerticalAlignment="Top" Fill="{StaticResource Ink}" Data="M10,0 H0 V10 A10,10 0 0 1 10,0 Z"/>
+    </StackPanel>
+  </Grid>
+</Window>

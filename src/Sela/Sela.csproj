@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sela.Core\Sela.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- WinForms only for the tray NotifyIcon; its namespaces are removed from implicit usings to avoid WPF clashes. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WFO0003 targets WinForms-hosted apps; this is a WPF app, so DPI awareness belongs in the manifest. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <AssemblyName>Sela</AssemblyName>
+    <RootNamespace>Sela</RootNamespace>
+    <Product>Sela</Product>
+    <AssemblyTitle>Sela</AssemblyTitle>
+    <Company>Sela</Company>
+    <Version>1.0.0</Version>
+    <ApplicationIcon Condition="Exists('Assets\Sela.ico')">Assets\Sela.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- XAML in Assets is compiled as Page (BAML); only binary assets are raw resources. -->
+    <Resource Include="Assets\**" Exclude="Assets\**\*.xaml;Assets\Audio\**" />
+    <!-- Adzan audio is played by MediaPlayer from disk, so it is copied next to the exe, not embedded. -->
+    <None Include="Assets\Audio\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
