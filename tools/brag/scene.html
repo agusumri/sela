@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- Sela /brag launch scene. Contract: tools/brag/CONTRACT.md. Every frame is a pure function of t (scene.js). -->
+<html lang="en"><head><meta charset="utf-8">
+<title>Sela — brag scene</title>
+<link rel="stylesheet" href="scene.css">
+</head>
+<body>
+  <div id="bg" aria-hidden="true">
+    <div id="glow-a" class="glow"></div>
+    <div id="glow-b" class="glow"></div>
+    <div id="glow-accent" class="glow"></div>
+    <div id="grain"></div>
+    <div id="edge"></div>
+  </div>
+  <!-- The "screen": everything that hangs from the top edge lives here and is clipped at the edge. -->
+  <div id="stage"></div>
+  <div id="fg"></div>
+  <script src="scene.js"></script>
+</body></html>

@@ -11,16 +11,28 @@
           dist/reels/sela-reels-<lang>.mp4 (video copied from sela-reels-<lang>-silent.mp4 + AAC)
           dist/reels/SOUNDTRACK-LICENSE.txt
 
+  Custom timelines (e.g. the /brag launch video) pass -Cuts/-Duration/-OutWav: the groove starts at
+  the first cut, claps lift from the third, the ney doubles the oud from the second-to-last, and the
+  last cut is the end card. -Sfx adds whooshes into each cut plus a tick/pop, pitched to D, under the
+  music and through the same reverb. With -OutWav only that WAV is written (no mux, no license file).
+
 .EXAMPLE
   ./tools/make-reels-audio.ps1
   ./tools/make-reels-audio.ps1 -Bpm 116 -SkipMux
+  ./tools/make-reels-audio.ps1 -Bpm 120 -Duration 20 -Cuts 2.5,5.5,9.5,13.5,17.0 -Sfx -OutWav brag-output/work/brag-soundtrack.wav
 #>
 [CmdletBinding()]
 param(
     [double]$Bpm = 112,
     [switch]$SkipMux,
     [string[]]$Languages = @('en', 'id'),
-    [string]$WorkRoot = (Join-Path $env:LOCALAPPDATA 'Temp\sela-reels\audio')
+    [string]$WorkRoot = (Join-Path $env:LOCALAPPDATA 'Temp\sela-reels\audio'),
+    [double[]]$Cuts,
+    [double]$Duration,
+    [string]$OutWav,
+    [switch]$Sfx,
+    [double]$TickAt = 6.2,   # -Sfx: wooden tick (cursor click)
+    [double]$PopAt = 11.5    # -Sfx: bell/oud pop (card appears)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,12 +40,20 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $OutDir = Join-Path $RepoRoot 'dist\reels'
 $Inv = [Globalization.CultureInfo]::InvariantCulture
 
-# Scene timing mirrors Get-Storyboard in tools/make-reels.ps1: scene k starts at the sum of
-# the previous scenes' Dur (each scene carries +XFade that the next xfade eats).
-$SceneDurs = @(2.5, 3.5, 3.5, 3.0, 3.0, 3.5, 2.5, 3.0)
-$Cuts = @(); $acc = 0.0
-for ($k = 1; $k -lt $SceneDurs.Count; $k++) { $acc += $SceneDurs[$k - 1]; $Cuts += $acc }
-$Total = ($SceneDurs | Measure-Object -Sum).Sum   # 24.5 s
+if ($Cuts) {
+    if ($Cuts.Count -lt 4) { throw '-Cuts needs at least 4 cut times (groove start, lift, ney, end card).' }
+    if (-not $Duration) { throw '-Duration is required with -Cuts.' }
+    $Total = $Duration
+    $NeyFrom = $Cuts[$Cuts.Count - 2]
+} else {
+    # Scene timing mirrors Get-Storyboard in tools/make-reels.ps1: scene k starts at the sum of
+    # the previous scenes' Dur (each scene carries +XFade that the next xfade eats).
+    $SceneDurs = @(2.5, 3.5, 3.5, 3.0, 3.0, 3.5, 2.5, 3.0)
+    $Cuts = @(); $acc = 0.0
+    for ($k = 1; $k -lt $SceneDurs.Count; $k++) { $acc += $SceneDurs[$k - 1]; $Cuts += $acc }
+    $Total = if ($Duration) { $Duration } else { ($SceneDurs | Measure-Object -Sum).Sum }   # 24.5 s
+    $NeyFrom = 11.0
+}
 
 $Source = @'
 using System;
@@ -116,6 +136,7 @@ public class Synth {
     void Add(int i, double v, double pan, double send) {
         if (i < 0 || i >= N) return;
         double a = (pan + 1) * Math.PI / 4;
+        if (fx) { XL[i] += v * Math.Cos(a); XR[i] += v * Math.Sin(a); XS[i] += v * send; return; }
         L[i] += v * Math.Cos(a); R[i] += v * Math.Sin(a); Send[i] += v * send;
     }
 
@@ -255,7 +276,109 @@ public class Synth {
 
     static double Freq(int deg) { return Hijaz[deg % 8] * (deg >= 8 ? 2 : 1); }
 
-    public void Compose(double bpm, double[] cuts) {
+    // ---- Sound effects ----------------------------------------------------------
+    // Call after Compose(). Each event renders into a scratch bus (own RNG, so the music is
+    // unaffected), then Commit() scales it to sit SfxUnderDb (RMS) under the dry music over the
+    // same span, caps its peak at a fraction of the music's local peak (never louder than the
+    // drums), and adds it to the dry mix + reverb send so it shares the music's space.
+    double[] XL, XR, XS;
+    bool fx;
+    Rng fxRng = new Rng(4242);
+    const double SfxUnderDb = -12.0, SfxPeakRatio = 0.35;
+    public string SfxReport = "";
+
+    void BeginFx() {
+        if (XL == null) { XL = new double[N]; XR = new double[N]; XS = new double[N]; }
+        fx = true; Rng t = rng; rng = fxRng; fxRng = t;
+    }
+
+    void Commit(string name, int i0, int n) {
+        fx = false; Rng t = rng; rng = fxRng; fxRng = t;
+        int a = Math.Max(0, i0), b = Math.Min(N, i0 + n);
+        int pa = Math.Max(0, i0 - SR / 4), pb = Math.Min(N, i0 + n + SR / 4);
+        double em = 0, ex = 0, pm = 0, px = 0;
+        for (int k = a; k < b; k++) {
+            em += L[k] * L[k] + R[k] * R[k]; ex += XL[k] * XL[k] + XR[k] * XR[k];
+            px = Math.Max(px, Math.Max(Math.Abs(XL[k]), Math.Abs(XR[k])));
+        }
+        for (int k = pa; k < pb; k++) pm = Math.Max(pm, Math.Max(Math.Abs(L[k]), Math.Abs(R[k])));
+        double g = ex > 0 ? Math.Sqrt(em / ex) * Math.Pow(10, SfxUnderDb / 20) : 0;
+        if (px * g > SfxPeakRatio * pm) g = SfxPeakRatio * pm / px;
+        for (int k = a; k < b; k++) {
+            L[k] += g * XL[k]; R[k] += g * XR[k]; Send[k] += g * XS[k];
+            XL[k] = XR[k] = XS[k] = 0;
+        }
+        double rel = 10 * Math.Log10((g * g * ex + 1e-30) / (em + 1e-30));
+        SfxReport += String.Format(System.Globalization.CultureInfo.InvariantCulture,
+            "{0,-6} {1,6:0.000}s  rms {2,6:0.0} dB vs music  peak {3,4:0.00}x music peak\n",
+            name, (double)i0 / SR, rel, pm > 0 ? px * g / pm : 0);
+    }
+
+    void AddFx(int i, double v, double pan, double send) { Add(i, v, pan, send); }
+
+    // Airy swell into a cut: noise through band-passes on D partials (D5/A5/D6), rising to the
+    // cut and released in ~40 ms; a faint D5 sine underneath keeps it in key. Pans left to right.
+    public void Whoosh(double cut, double len) {
+        int i0 = Idx(cut - len), n = Idx(len + 0.08);
+        BeginFx();
+        Biquad[] bp = { Biquad.BandPass(SR, 587.33, 3.0), Biquad.BandPass(SR, 880.0, 3.0), Biquad.BandPass(SR, 1174.66, 3.0) };
+        Biquad lp = Biquad.LowPass(SR, 4000, 0.7);
+        double[] w = { 1.0, 0.6, 0.45 };
+        for (int k = 0; k < n; k++) {
+            double tt = (double)k / SR, x = tt / len;
+            double env = tt < len ? x * x * (3 - 2 * x) : Math.Exp(-(tt - len) / 0.04);
+            double nz = lp.Process(rng.Bi()), v = 0;
+            for (int j = 0; j < bp.Length; j++) v += w[j] * bp[j].Process(nz);
+            v = 3.0 * v + 0.12 * Math.Sin(2 * Math.PI * 587.33 * tt);
+            AddFx(i0 + k, env * v, -0.5 + Math.Min(1.0, x), 0.6);
+        }
+        Commit("whoosh", i0, n);
+    }
+
+    // Soft wooden tick (cursor click): short D6/A5 knock with a 1.5 ms attack, no click edge.
+    public void Tick(double t) {
+        int i0 = Idx(t), n = Idx(0.12);
+        BeginFx();
+        Biquad bp = Biquad.BandPass(SR, 1174.66, 6.0);
+        for (int k = 0; k < n; k++) {
+            double tt = (double)k / SR, att = 1 - Math.Exp(-tt / 0.0015);
+            double v = Math.Sin(2 * Math.PI * 1174.66 * tt) * Math.Exp(-tt / 0.018)
+                     + 0.5 * Math.Sin(2 * Math.PI * 880.0 * tt) * Math.Exp(-tt / 0.03)
+                     + 0.6 * bp.Process(rng.Bi()) * Math.Exp(-tt / 0.008);
+            AddFx(i0 + k, att * v, 0.15, 0.5);
+        }
+        Commit("tick", i0, n);
+    }
+
+    // Card pop: soft bell (D5, A5, D6, F#6 partials) with a 4 ms attack plus a quiet oud D5 pluck.
+    public void Pop(double t) {
+        int i0 = Idx(t), n = Idx(0.9);
+        BeginFx();
+        double[] f = { 587.33, 880.0, 1174.66, 1479.98 }, a = { 1.0, 0.35, 0.45, 0.15 }, d = { 0.45, 0.3, 0.25, 0.15 };
+        for (int k = 0; k < n; k++) {
+            double tt = (double)k / SR, att = 1 - Math.Exp(-tt / 0.004), v = 0;
+            for (int j = 0; j < f.Length; j++) v += a[j] * Math.Sin(2 * Math.PI * f[j] * tt) * Math.Exp(-tt / d[j]);
+            AddFx(i0 + k, att * v * (k > n - 2400 ? (n - k) / 2400.0 : 1.0), 0, 0.6);
+        }
+        Oud(t, 587.33, 0.25, 0.25, 0, 1.2);   // routed to the fx bus as well (n covers its 0.7 s)
+        Commit("pop", i0, n);
+    }
+
+    // A whoosh leading into each cut (two beats into the first, one beat into the rest, so each
+    // starts on the grid), the click tick and the card pop.
+    public void Effects(double bpm, double[] cuts, double tickAt, double popAt) {
+        double beat = 60.0 / bpm;
+        for (int c = 0; c < cuts.Length; c++) Whoosh(cuts[c], c == 0 ? 2 * beat : beat);
+        if (tickAt > 0) Tick(tickAt);
+        if (popAt > 0) Pop(popAt);
+    }
+
+    public void Compose(double bpm, double[] cuts) { Compose(bpm, cuts, 11.0, false); }
+
+    // custom=false is the original Reels arrangement (byte-identical). custom=true is for caller
+    // timelines: ney call on the beat grid, a big dum on the first cut, and the ney doubling
+    // switches on at the first note at/after neyFrom instead of per phrase.
+    public void Compose(double bpm, double[] cuts, double neyFrom, bool custom) {
         double beat = 60.0 / bpm, e = beat / 2;
         double start = cuts[0], end = cuts[cuts.Length - 1];
 
@@ -267,9 +390,16 @@ public class Synth {
             Riq(rt, 0.03 + 0.4 * p * p * p, (Math.Round(rt * 100) % 2 == 0) ? -0.3 : 0.3, 0.02 + 0.02 * p);
             rt += 0.13 - 0.095 * p;
         }
-        Ney(0.55, 440.0, 0.9, 0.06, 0);
-        Ney(1.5, 466.16, 0.35, 0.06, 0);
-        Ney(1.85, 440.0, 0.55, 0.07, 0);
+        if (custom) {
+            Ney(start - 4 * beat, 440.0, 1.8 * beat, 0.06, 0);
+            Ney(start - 2 * beat, 466.16, 0.8 * beat, 0.06, 0);
+            Ney(start - beat, 440.0, 0.95 * beat, 0.07, 0);
+            Dum(start, 1.1, 0);
+        } else {
+            Ney(0.55, 440.0, 0.9, 0.06, 0);
+            Ney(1.5, 466.16, 0.35, 0.06, 0);
+            Ney(1.85, 440.0, 0.55, 0.07, 0);
+        }
 
         // Groove: maqsum (D T . T D . T .) in eighths.
         for (int k = 0; ; k++) {
@@ -321,11 +451,12 @@ public class Synth {
         double pt = start;
         for (int p = 0; p < order.Length; p++) {
             int[] d = degs[order[p]]; double[] ln = lens[order[p]];
-            bool ney = pt >= 11.0;
+            bool ney = pt >= neyFrom;
             double nt = pt, beatsIn = 0;
             for (int i = 0; i < d.Length; i++) {
                 double dur = ln[i] * beat, f = Freq(d[i]);
                 if (nt >= end - 0.05) break;
+                if (custom) ney = nt >= neyFrom - 0.01;
                 Oud(nt, f, dur, 0.5, 0, 1.4);
                 if (ln[i] >= 1) Oud(nt + e, f, e, 0.3, 0, 1.4);       // tremolo re-pick on long notes
                 if (ney) Ney(nt, f * 2, Math.Min(dur, end - nt) - 0.03, 0.11, 0);
@@ -343,7 +474,9 @@ public class Synth {
     }
 
     // ---- Mix ---------------------------------------------------------------------
-    public void Mix(string path) {
+    public void Mix(string path) { Mix(path, 3.2); }
+
+    public void Mix(string path, double drive) {
         double sc = SR / 44100.0;
         int[] cs = { 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 };
         int[] aps = { 556, 441, 341, 225 };
@@ -376,7 +509,7 @@ public class Synth {
             peak = Math.Max(peak, Math.Max(Math.Abs(L[k]), Math.Abs(R[k])));
         }
         // Normalize, then soft-clip transients (drive) to tame crest factor for loudnorm.
-        double drive = 3.2, norm = drive / peak, tn = Math.Tanh(drive);
+        double norm = drive / peak, tn = Math.Tanh(drive);
         using (BinaryWriter w = new BinaryWriter(File.Create(path))) {
             int bytes = N * 2 * 4;
             w.Write(Encoding.ASCII.GetBytes("RIFF")); w.Write(36 + bytes); w.Write(Encoding.ASCII.GetBytes("WAVE"));
@@ -443,15 +576,27 @@ function Get-FFmpegLog([string[]]$FfArgs) {
 
 if (-not ('SelaAudio.Synth' -as [type])) { Add-Type -TypeDefinition $Source -Language CSharp }
 
-New-Item -ItemType Directory -Force -Path $OutDir, $WorkRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $WorkRoot | Out-Null
 $raw = Join-Path $WorkRoot 'soundtrack-raw.wav'
-$wav = Join-Path $OutDir 'sela-reels-soundtrack.wav'
+if ($OutWav) {
+    $wav = if ([IO.Path]::IsPathRooted($OutWav)) { $OutWav } else { Join-Path (Get-Location).Path $OutWav }
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $wav) | Out-Null
+} else {
+    New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+    $wav = Join-Path $OutDir 'sela-reels-soundtrack.wav'
+}
 
 # Groove starts at the first cut; the end card starts at the last.
 Write-Host ("Rendering {0}s at {1} BPM, cuts: {2}" -f $Total, $Bpm, (($Cuts | ForEach-Object { $_.ToString('0.##', $Inv) }) -join ', '))
 $synth = New-Object SelaAudio.Synth ([double]$Total)
-$synth.Compose($Bpm, [double[]]$Cuts)
-$synth.Mix($raw)
+if ($PSBoundParameters.ContainsKey('Cuts')) { $synth.Compose($Bpm, [double[]]$Cuts, $NeyFrom, $true) }
+else { $synth.Compose($Bpm, [double[]]$Cuts) }
+if ($Sfx) {
+    $synth.Effects($Bpm, [double[]]$Cuts, $TickAt, $PopAt)
+    Write-Host "`nSfx placement (dry, before reverb):"; Write-Host $synth.SfxReport
+}
+# Custom timelines get a little more soft-clip drive so loudnorm can stay linear (no pumping).
+if ($PSBoundParameters.ContainsKey('Cuts')) { $synth.Mix($raw, 3.8) } else { $synth.Mix($raw) }
 
 # Two-pass loudnorm: -14 LUFS integrated, true peak <= -1 dBTP (target -1.5 for AAC headroom).
 $log = Get-FFmpegLog @('-i', $raw, '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-')
@@ -462,6 +607,13 @@ $ln = "loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=$($m.input_i):measured_TP=$($m.i
 $log2 = Get-FFmpegLog @('-i', $raw, '-af', $ln, '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', $wav)
 $j2 = $log2.Substring($log2.LastIndexOf('{')); $j2 = ($j2.Substring(0, $j2.IndexOf('}') + 1)) | ConvertFrom-Json
 Write-Host ("loudnorm: input {0} LUFS / {1} dBTP -> {2} ({3})" -f $m.input_i, $m.input_tp, $j2.output_i, $j2.normalization_type)
+
+if ($OutWav) {
+    Write-Host "wrote $wav"
+    Write-Host "`nOnsets at scene cuts:"
+    Write-Host ([SelaAudio.Synth]::Onsets($wav, [double[]]$Cuts))
+    return
+}
 
 [IO.File]::WriteAllText((Join-Path $OutDir 'SOUNDTRACK-LICENSE.txt'), @"
 Original composition generated by tools/make-reels-audio.ps1 for Sela. Released under CC0 1.0 (public domain).

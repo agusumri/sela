@@ -1,0 +1,91 @@
+/* Sela /brag scene. Static styles only: every animated property is written by scene.js from t. */
+:root {
+  --bg-top: #0E1116;
+  --bg-bot: #1B2230;
+  --ink: #F5F5F7;
+  --ink-2: #9C9CA3;
+  --sholat: #3DDC97;
+  --meet: #4C9BFF;
+  --edge: 236px;            /* the "top of the screen" the notch hangs from; keeps UI out of the Reels top band */
+  --display: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  --text: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+}
+
+html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #0E1116; }
+body { position: relative; color: var(--ink); font-family: var(--text); -webkit-font-smoothing: antialiased; }
+
+/* ---------- atmosphere ---------- */
+#bg { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(180deg, var(--bg-top) 0%, #141922 48%, var(--bg-bot) 100%); }
+.glow { position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none; will-change: transform, opacity; }
+#glow-a { width: 1500px; height: 1500px; background: radial-gradient(closest-side, rgba(61,220,151,.20), rgba(61,220,151,.07) 45%, rgba(61,220,151,0) 100%); }
+#glow-b { width: 1300px; height: 1300px; background: radial-gradient(closest-side, rgba(76,155,255,.10), rgba(76,155,255,0) 100%); }
+#glow-accent { width: 1100px; height: 1100px; background: radial-gradient(closest-side, rgba(61,220,151,.42), rgba(61,220,151,.12) 40%, rgba(61,220,151,0) 100%); }
+#grain {
+  position: absolute; inset: 0; opacity: .07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+/* The monitor's top bezel: a quiet darker band with a hairline, so the notch has an edge to drop from. */
+#edge {
+  position: absolute; left: 0; top: 0; width: 1080px; height: var(--edge);
+  background: linear-gradient(180deg, rgba(4,5,8,.55), rgba(6,8,11,.42));
+}
+#edge::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 4%, rgba(255,255,255,.10) 30%, rgba(255,255,255,.14) 50%, rgba(255,255,255,.10) 70%, rgba(255,255,255,0) 96%);
+}
+
+/* ---------- the screen (UI hangs from its top edge and is clipped there) ---------- */
+#stage { position: absolute; left: 0; top: var(--edge); width: 1080px; height: calc(1920px - var(--edge)); overflow: hidden; }
+.layer { position: absolute; top: 0; transform-origin: 50% 0; visibility: hidden; will-change: transform, opacity, clip-path; }
+.layer img { display: block; width: 100%; height: 100%; image-rendering: auto; }
+.layer .ph { position: absolute; display: none; background: #000; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
+.layer.missing img { display: none; }
+.layer.missing .ph { display: block; }
+
+/* Feathered masks: the captures carry their own dark backdrop; fade it into ours so no rectangle shows. */
+.feather-pill  { -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 6.5%, #000 93.5%, transparent 100%), linear-gradient(180deg, #000 0%, #000 56%, transparent 96%); }
+.feather-card  { -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 4.6%, #000 95.4%, transparent 100%), linear-gradient(180deg, #000 0%, #000 80%, transparent 99%); }
+.feather-prayer { -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%), linear-gradient(180deg, #000 0%, #000 73%, transparent 80%); }
+.feather-agenda { -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%), linear-gradient(180deg, #000 0%, #000 80%, transparent 87%); }
+.feather-hadith { -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%), linear-gradient(180deg, #000 0%, #000 94.5%, transparent 100%); }
+.feather-pill, .feather-card, .feather-prayer, .feather-agenda, .feather-hadith {
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+}
+
+.ring { position: absolute; border-radius: 50%; border: 2px solid rgba(61,220,151,.9); visibility: hidden; }
+
+/* ---------- type ---------- */
+#fg { position: absolute; inset: 0; }
+.txt { position: absolute; visibility: hidden; }
+.w { display: inline-block; will-change: transform, opacity; }
+.acc { color: var(--sholat); }
+
+.caption {
+  left: 90px; width: 900px; top: 1170px; text-align: center;
+  font: 600 76px/1.13 var(--display); letter-spacing: -0.012em; text-wrap: balance;
+}
+
+.sub { left: 90px; width: 900px; top: 1062px; text-align: center; font: 400 42px/1.25 var(--text); color: var(--ink-2); text-wrap: balance; }
+
+#count { left: 0; width: 1080px; top: 585px; text-align: center; }
+#count .label { display: inline-block; font: 400 42px/1.2 var(--text); color: var(--ink-2); letter-spacing: .005em; }
+#count .digits {
+    display: flex; justify-content: center; align-items: baseline; margin-top: 6px;
+  font: 600 214px/1 var(--display); letter-spacing: -0.035em; font-variant-numeric: tabular-nums;
+}
+#count .dg { position: relative; display: inline-block; width: .6em; height: 1.08em; overflow: hidden; text-align: center; }
+#count .dg span { position: absolute; left: 0; right: 0; top: 0; line-height: 1.08em; }
+#count .unit { font-size: .4em; color: var(--sholat); margin: 0 .5em 0 .08em; letter-spacing: 0; }
+#count .unit.last { margin-right: 0; }
+
+#brand { left: 0; width: 1080px; top: 548px; text-align: center; }
+#brand img { display: block; width: 196px; height: 196px; margin: 0 auto; filter: drop-shadow(0 22px 48px rgba(0,0,0,.55)); }
+#brand .word { display: inline-block; margin-top: 18px; font: 700 168px/1 var(--display); letter-spacing: -0.04em; }
+#brand .bar { width: 120px; height: 7px; margin: 30px auto 0; border-radius: 4px; background: var(--sholat); transform-origin: 50% 50%; }
+
+#url { left: 90px; width: 900px; top: 1290px; text-align: center; font: 600 42px/1.2 var(--text); color: var(--sholat); letter-spacing: .01em; }
+
+.sky-label { width: 232px; text-align: center; font: 400 28px/1.2 var(--text); color: var(--ink-2); }
+
+#cursor { position: absolute; left: 0; top: 0; width: 46px; height: 62px; visibility: hidden; transform-origin: 6px 4px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.55)); }
+#ripple { position: absolute; border-radius: 50%; border: 3px solid rgba(245,245,247,.85); visibility: hidden; }

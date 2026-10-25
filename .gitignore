@@ -486,3 +486,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# /brag launch video output (large media)
+brag-output/
+brag-output-*/
