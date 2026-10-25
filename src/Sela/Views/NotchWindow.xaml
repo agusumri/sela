@@ -147,6 +147,76 @@
       </Setter>
     </Style>
 
+    <!-- quiet green text button (show / hide the full Arabic) -->
+    <Style x:Key="TextLink" TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource Sholat}"/>
+      <Setter Property="FontFamily" Value="{StaticResource TextFont}"/>
+      <Setter Property="FontSize" Value="11.5"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" Background="Transparent" Padding="0,2" Opacity="0.85">
+              <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Opacity" Value="1"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.6"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- slim overlay scrollbar for the dark panel: 4 px rounded thumb, ~40% white, no arrows -->
+    <Style x:Key="SlimBar" TargetType="ScrollBar">
+      <Setter Property="Width" Value="6"/>
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollBar">
+            <Track x:Name="PART_Track" IsDirectionReversed="True" Width="4" HorizontalAlignment="Center">
+              <Track.Thumb>
+                <Thumb Cursor="Arrow">
+                  <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                      <Border CornerRadius="2" Background="#66FFFFFF"/>
+                    </ControlTemplate>
+                  </Thumb.Template>
+                </Thumb>
+              </Track.Thumb>
+            </Track>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="SlimScroll" TargetType="ScrollViewer">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollViewer">
+            <Grid Background="{TemplateBinding Background}">
+              <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Margin="{TemplateBinding Padding}"
+                                      CanContentScroll="{TemplateBinding CanContentScroll}"/>
+              <ScrollBar x:Name="PART_VerticalScrollBar" Style="{StaticResource SlimBar}" Orientation="Vertical"
+                         HorizontalAlignment="Right" Opacity="0" Cursor="Arrow"
+                         Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                         Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}"
+                         Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="PART_VerticalScrollBar" Property="Opacity" Value="1"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <!-- one half of the Sholat | Agenda switch; the sliding thumb lives behind both -->
     <Style x:Key="Segment" TargetType="RadioButton">
       <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
@@ -605,8 +675,10 @@
                       <TextBlock x:Name="HadithTitle" FontSize="16" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"
                                  TextWrapping="Wrap" LineHeight="21" Margin="0,3,0,0"/>
                     </StackPanel>
-                    <ScrollViewer x:Name="HaditsScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden" Focusable="False"
-                                  PanningMode="VerticalOnly">
+                    <!-- slim scrollbar while it overflows and the pointer is over it; the bottom fade drops once scrolled to the end
+                         (code). Transparent background so the wheel works over the gaps between lines too. -->
+                    <ScrollViewer x:Name="HaditsScroll" Grid.Row="1" Style="{StaticResource SlimScroll}" VerticalScrollBarVisibility="Auto"
+                                  Focusable="False" PanningMode="VerticalOnly" Background="Transparent" ScrollChanged="HaditsScroll_ScrollChanged">
                       <ScrollViewer.OpacityMask>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                           <GradientStop Color="#FF000000" Offset="0"/>
@@ -614,12 +686,17 @@
                           <GradientStop Color="#00000000" Offset="1"/>
                         </LinearGradientBrush>
                       </ScrollViewer.OpacityMask>
-                      <StackPanel x:Name="HaditsBody" Margin="4,0,4,26">
+                      <!-- 10 on the right keeps the RTL text clear of the slim scrollbar -->
+                      <StackPanel x:Name="HaditsBody" Margin="4,0,10,26" SizeChanged="HaditsBody_SizeChanged">
                         <StackPanel.RenderTransform><TranslateTransform/></StackPanel.RenderTransform>
+                        <!-- clamped to 4 lines (MaxHeight set from code) so the translation stays on screen -->
                         <TextBlock x:Name="HadithArabic" FlowDirection="RightToLeft" TextAlignment="Left" TextWrapping="Wrap"
+                                   TextTrimming="WordEllipsis"
                                    FontFamily="{StaticResource ArabicFont}" FontSize="20" LineHeight="36"
                                    LineStackingStrategy="BlockLineHeight" Foreground="{StaticResource TextPrimary}"
                                    xml:lang="ar"/>
+                        <Button x:Name="ArabicToggle" Style="{StaticResource TextLink}" HorizontalAlignment="Left" Margin="0,2,0,-4"
+                                Visibility="Collapsed" Click="ArabicToggle_Click"/>
                         <Rectangle Height="1" Fill="{StaticResource Hairline}" Margin="0,12,0,12" Width="48" HorizontalAlignment="Left"/>
                         <TextBlock x:Name="HadithIndonesian" FlowDirection="LeftToRight" TextWrapping="Wrap" FontSize="13.5" LineHeight="21"
                                    Foreground="#D6D6DB" MaxWidth="300" HorizontalAlignment="Left"/>

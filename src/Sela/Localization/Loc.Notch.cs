@@ -53,6 +53,8 @@ public sealed partial class Loc
         // hadits page
         ["Notch_LoadingHadith"] = ("Memuat hadits…", "Loading hadith…"),
         ["Notch_HadithUnavailable"] = ("Hadits belum tersedia", "Hadith not available yet"),
+        ["Notch_ShowFullArabic"] = ("Tampilkan teks Arab lengkap", "Show full Arabic"),
+        ["Notch_HideArabic"] = ("Sembunyikan", "Hide"),
         ["Notch_HabitsToday"] = ("Ibadah hari ini", "Today's worship"),
         ["Notch_HabitDoneHint"] = ("{0}: sudah", "{0}: done"),
         ["Notch_HabitMarkHint"] = ("Tandai {0} sudah", "Mark {0} as done"),

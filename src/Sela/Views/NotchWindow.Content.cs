@@ -145,6 +145,8 @@ public partial class NotchWindow
             HadithArabic.Text = hadith.Arabic?.Trim() ?? string.Empty;
             HadithArabic.Visibility = string.IsNullOrWhiteSpace(hadith.Arabic) ? Visibility.Collapsed : Visibility.Visible;
             HadithIndonesian.Text = hadith.Translation?.Trim() ?? string.Empty;
+            _arabicExpanded = false; // a new hadith (or language) starts collapsed
+            ApplyArabicClamp();
             HaditsScroll.ScrollToTop();
             System.Windows.Automation.AutomationProperties.SetName(HaditsScroll, $"{hadith.Title}. {hadith.Translation}");
         }
@@ -162,6 +164,61 @@ public partial class NotchWindow
             HaditsEmptyBody.Text = Loc.T("Notch_CheckInternet");
         }
         HaditsRetry.Visibility = State.HadithLoading && !has ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    // ---------------- long Arabic: clamp + toggle, scroll fade ----------------
+
+    // 3, not 4: the body viewport is ~208 DIP above the habit strip, and 4 lines left only ~1 line of translation visible.
+    private const int ArabicMaxLines = 3;
+    private const double ArabicLineHeight = 36; // matches HadithArabic.LineHeight in XAML
+    private bool _arabicExpanded;
+    private double _arabicMeasureWidth;
+    private Brush? _haditsFade;
+
+    /// <summary>
+    /// Long Arabic is clamped to 4 lines so the translation follows on screen; the toggle shows only when the
+    /// text really is clamped (measured at the body's width), and expands / collapses it in place.
+    /// </summary>
+    private void ApplyArabicClamp()
+    {
+        var width = HaditsBody.ActualWidth > 0 ? HaditsBody.ActualWidth : PanelContentWidth - 14; // body margin 4 + 10
+        _arabicMeasureWidth = width;
+        var clampHeight = ArabicMaxLines * ArabicLineHeight;
+        var clamped = false;
+        if (HadithArabic.Visibility == Visibility.Visible && HadithArabic.Text.Length > 0)
+        {
+            HadithArabic.MaxHeight = double.PositiveInfinity;
+            HadithArabic.Measure(new Size(width, double.PositiveInfinity));
+            clamped = HadithArabic.DesiredSize.Height > clampHeight + 1;
+        }
+        HadithArabic.MaxHeight = clamped && !_arabicExpanded ? clampHeight : double.PositiveInfinity;
+        ArabicToggle.Visibility = clamped ? Visibility.Visible : Visibility.Collapsed;
+        ArabicToggle.Content = Loc.T(_arabicExpanded ? "Notch_HideArabic" : "Notch_ShowFullArabic");
+        System.Windows.Automation.AutomationProperties.SetName(ArabicToggle, (string)ArabicToggle.Content);
+    }
+
+    private void ArabicToggle_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        _arabicExpanded = !_arabicExpanded;
+        ApplyArabicClamp();
+        // collapsing from further down: come back to the top so the translation is in view again
+        if (!_arabicExpanded) HaditsScroll.ScrollToTop();
+    }
+
+    /// <summary>Width settles after the first layout pass (and on DPI changes): re-check whether the text is clamped.</summary>
+    private void HaditsBody_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.WidthChanged && Math.Abs(HaditsBody.ActualWidth - _arabicMeasureWidth) > 0.5) ApplyArabicClamp();
+    }
+
+    /// <summary>The bottom fade hints at more text; at the end it's dropped so the last line reads in full.</summary>
+    private void HaditsScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        _haditsFade ??= HaditsScroll.OpacityMask;
+        var atEnd = HaditsScroll.VerticalOffset >= HaditsScroll.ScrollableHeight - 1;
+        var mask = atEnd ? null : _haditsFade;
+        if (!ReferenceEquals(HaditsScroll.OpacityMask, mask)) HaditsScroll.OpacityMask = mask;
     }
 
     // ---------------- refresh + offline status ----------------
