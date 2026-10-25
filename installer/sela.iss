@@ -1,6 +1,7 @@
 ; Sela installer (Inno Setup 6). Per-user install, no admin rights needed.
 ; Build: ISCC.exe /DAppVersion=1.0.0 installer\sela.iss
-; Expects the published single-file exe at dist\publish\Sela.exe.
+; Expects the published single-file exe at dist\publish\Sela.exe (override with /DPublishDir=<dir>).
+; Wizard art comes from installer\art (regenerate with tools\make-installer-art.ps1).
 
 #ifndef AppVersion
   #define AppVersion "1.0.0"
@@ -11,6 +12,9 @@
 #define AppPublisher "Agus Umriadi"
 #define AppUrl "https://github.com/agusumri/sela"
 #define Root ".."
+#ifndef PublishDir
+  #define PublishDir Root + "\dist\publish"
+#endif
 
 ; Indonesian.isl is an unofficial translation and is not bundled with every Inno 6 install.
 #if FileExists(AddBackslash(CompilerPath) + "Languages\Indonesian.isl")
@@ -40,7 +44,15 @@ OutputDir={#Root}\dist
 OutputBaseFilename=Sela-Setup-{#AppVersion}
 Compression=lzma2/max
 SolidCompression=yes
-WizardStyle=modern
+; Forced dark: matches the true-black brand and the dark wizard art in every Windows theme.
+WizardStyle=modern dark
+; Art is pre-rendered at each DPI's exact image-area size (Inno 6.6+ defaults), so Setup picks a 1:1 match.
+WizardImageFile=art\wizard-202x386.png,art\wizard-269x515.png,art\wizard-336x643.png,art\wizard-403x772.png,art\wizard-430x824.png,art\wizard-498x953.png,art\wizard-534x1022.png
+WizardSmallImageFile=art\small-58.png,art\small-77.png,art\small-97.png,art\small-116.png,art\small-124.png,art\small-143.png,art\small-159.png
+WizardImageStretch=no
+WizardImageBackColor=#0E1116
+; Inno hides the Welcome page by default; show it so the branded panel greets the user.
+DisableWelcomePage=no
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; Close a running Sela on upgrade/uninstall (mutex name from App.xaml.cs).
@@ -67,7 +79,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "autostart"; Description: "{cm:AutostartTask}"; Flags: unchecked
 
 [Files]
-Source: "{#Root}\dist\publish\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PublishDir}\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
