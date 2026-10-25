@@ -739,7 +739,8 @@
             <Grid x:Name="ReminderLayer" Width="380" Height="92" HorizontalAlignment="Center" VerticalAlignment="Top"
                   Opacity="0" Visibility="Collapsed">
               <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
-              <Grid Margin="20,12,18,0" Height="56" VerticalAlignment="Top">
+              <!-- 56 tall; 68 with a dhikr (card 92 → 104, set from code) so title + Arabic + Latin line all fit -->
+              <Grid x:Name="ReminderContent" Margin="20,12,18,0" Height="56" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -775,6 +776,14 @@
                   </DockPanel>
                   <TextBlock x:Name="ReminderBody" Foreground="{StaticResource TextSecondary}" FontSize="12" LineHeight="16"
                              MaxHeight="32" Margin="0,2,0,0" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
+                  <!-- PrayerSoon + dhikr: one short dhikr replaces the body line (Arabic, then "Latin · meaning") -->
+                  <StackPanel x:Name="ReminderDhikr" Visibility="Collapsed" Margin="0,1,0,0">
+                    <TextBlock x:Name="ReminderDhikrArabic" FlowDirection="RightToLeft" HorizontalAlignment="Left"
+                               FontFamily="{StaticResource ArabicFont}" FontSize="17" LineHeight="26" LineStackingStrategy="BlockLineHeight"
+                               Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" xml:lang="ar"/>
+                    <TextBlock x:Name="ReminderDhikrLine" FontSize="11.5" Foreground="{StaticResource TextSecondary}"
+                               TextTrimming="CharacterEllipsis"><Run x:Name="ReminderDhikrLatin" FontStyle="Italic"/><Run Text=" · " Foreground="{StaticResource TextTertiary}"/><Run x:Name="ReminderDhikrMeaning"/></TextBlock>
+                  </StackPanel>
                 </StackPanel>
                 <TextBlock x:Name="ReminderBadge" Grid.Column="2" VerticalAlignment="Center" FontFamily="{StaticResource DisplayFont}"
                            FontWeight="SemiBold" FontSize="20" Typography.NumeralAlignment="Tabular"/>

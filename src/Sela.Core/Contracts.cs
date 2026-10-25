@@ -87,7 +87,17 @@ public sealed record Reminder(
     DateTime DueAt,
     Prayer? Prayer = null,   // set for prayer reminders (used to pick the adzan)
     Habit? Habit = null,     // set for Habit reminders: the card offers "Sudah" / "Nanti"
-    CalendarSource? Source = null); // set for Meeting reminders: shown as an Outlook / Google badge
+    CalendarSource? Source = null, // set for Meeting reminders: shown as an Outlook / Google badge
+    Dhikr? Dhikr = null);    // set on PrayerSoon when SelaSettings.PrayerDhikr: one short dhikr shown on the card
+
+/// <summary>A short dhikr shown on the "N minutes until prayer" card (istighfar, tahmid, tahlil).</summary>
+public sealed record Dhikr(
+    DhikrKind Kind,
+    string Arabic,           // with harakat, shown right-to-left
+    string Latin,            // transliteration, e.g. "Astaghfirullah"
+    string Meaning);         // in the reminder's language
+
+public enum DhikrKind { Istighfar, Tahmid, Tahlil }
 
 /// <summary>
 /// One hadith for the daily card (Arbain Nawawi, 42 hadith). Indonesian text comes from api.myquran.com,
@@ -145,6 +155,8 @@ public sealed class SelaSettings
     };
     /// <summary>Show the "Hadits hari ini" card once each morning.</summary>
     public bool DailyHadithCard { get; set; } = true;
+    /// <summary>Add one short dhikr (istighfar, tahmid or tahlil) to the "N minutes until prayer" card.</summary>
+    public bool PrayerDhikr { get; set; } = true;
 
     // ---- language ----
     /// <summary>Interface language; null = follow the Windows display language.</summary>

@@ -311,6 +311,27 @@ public partial class NotchWindow
     private static string ReminderBodyText(Reminder r) =>
         r.Kind == ReminderKind.Hadith ? NotchFormat.Excerpt(r.Body, HadithExcerptLength) : r.Body;
 
+    /// <summary>Only the "N minutes until prayer" card carries a dhikr; any other kind keeps its normal layout.</summary>
+    private static bool HasDhikr(Reminder? r) => r is { Kind: ReminderKind.PrayerSoon, Dhikr: not null };
+
+    /// <summary>
+    /// With a dhikr, the body line gives way to the Arabic and "Latin · meaning", and the card grows 92 → 104
+    /// (content 56 → 68). Without one the card is exactly as before. The progress bar stays bottom-anchored.
+    /// </summary>
+    private void ApplyReminderDhikr(Reminder r)
+    {
+        var d = HasDhikr(r) ? r.Dhikr : null;
+        ReminderDhikr.Visibility = d is null ? Visibility.Collapsed : Visibility.Visible;
+        ReminderBody.Visibility = d is null ? Visibility.Visible : Visibility.Collapsed;
+        ReminderContent.Height = d is null ? 56 : 68;
+        ReminderLayer.Height = d is null ? ReminderSize.Height : ReminderDhikrSize.Height;
+        if (d is null) return;
+        ReminderDhikrArabic.Text = d.Arabic.Trim();
+        ReminderDhikrLatin.Text = d.Latin.Trim();
+        ReminderDhikrMeaning.Text = d.Meaning.Trim();
+        ReminderDhikrLine.ToolTip = $"{d.Latin.Trim()} · {d.Meaning.Trim()}";
+    }
+
     private void ApplyReminderSource(Reminder r)
     {
         if (r.Kind == ReminderKind.Meeting && r.Source is { } s)

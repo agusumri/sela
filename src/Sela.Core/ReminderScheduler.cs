@@ -71,7 +71,11 @@ public sealed class ReminderScheduler
                     Prayer.Terbit => ($"{n} menit lagi {name}", "Matahari terbit"),
                     _ => ($"{n} menit lagi {name}", $"Bersiap untuk sholat {name}"),
                 };
-                due.Add(new Reminder($"soon|{dateKey}|{pt.Prayer}", ReminderKind.PrayerSoon, title, body, badge, null, t - lead, pt.Prayer));
+                var dhikr = s.PrayerDhikr && Wajib.Contains(pt.Prayer)
+                    ? DhikrLibrary.For(DhikrLibrary.Pick(today.Date, pt.Prayer), lang)
+                    : null;
+                due.Add(new Reminder($"soon|{dateKey}|{pt.Prayer}", ReminderKind.PrayerSoon, title, body, badge, null, t - lead, pt.Prayer,
+                    Dhikr: dhikr));
             }
 
             if (now >= t && now < t + PrayerNowWindow)

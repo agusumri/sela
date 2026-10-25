@@ -165,6 +165,7 @@ public partial class App : Application, IAppCommands
         if (e.Args.Contains("--test-adhan", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestAdhan);
         if (e.Args.Contains("--test-habit", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestHabit);
         if (e.Args.Contains("--test-hadith", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestHadith);
+        if (e.Args.Contains("--test-dhikr", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestDhikr);
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -825,6 +826,18 @@ public partial class App : Application, IAppCommands
             null, null, now));
     }
 
+    /// <summary>The dhikr the scheduler would attach to today's Ashar card, in the UI language.</summary>
+    private static Dhikr SampleDhikr(DateTime now) =>
+        DhikrLibrary.For(DhikrLibrary.Pick(DateOnly.FromDateTime(now), Prayer.Ashar), Loc.Instance.Language);
+
+    /// <summary>--test-dhikr: one "N minutes until Ashar" card carrying a dhikr.</summary>
+    private void TestDhikr()
+    {
+        var now = DateTime.Now;
+        _notch.ShowReminder(new Reminder($"test-dhikr|{Guid.NewGuid():N}", ReminderKind.PrayerSoon, Loc.F("Shell_DemoSoonTitle", AsharName),
+            Loc.F("Shell_DemoSoonBody", AsharName), now.AddMinutes(10).ToString("HH:mm"), null, now, Prayer.Ashar, Dhikr: SampleDhikr(now)));
+    }
+
     private async Task ShowAfterDelayAsync(Action show)
     {
         await Task.Delay(TimeSpan.FromSeconds(1.5));
@@ -838,7 +851,7 @@ public partial class App : Application, IAppCommands
         string id = Guid.NewGuid().ToString("N");
         var soon = now.AddMinutes(10);
         _notch.ShowReminder(new Reminder($"demo|soon|{id}", ReminderKind.PrayerSoon, Loc.F("Shell_DemoSoonTitle", AsharName),
-            Loc.F("Shell_DemoSoonBody", AsharName), soon.ToString("HH:mm"), null, now));
+            Loc.F("Shell_DemoSoonBody", AsharName), soon.ToString("HH:mm"), null, now, Prayer.Ashar, Dhikr: SampleDhikr(now)));
         Deliver(new Reminder($"demo|now|{id}", ReminderKind.PrayerNow, Loc.F("Shell_PrayerNowTitle", AsharName),
             Loc.F("Shell_PrayerNowBody", AsharName, _state.City.DisplayName), now.ToString("HH:mm"), null, now.AddSeconds(1), Prayer.Ashar));
         var start = now.AddMinutes(5);

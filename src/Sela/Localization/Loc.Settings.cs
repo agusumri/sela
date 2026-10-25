@@ -86,6 +86,9 @@ public sealed partial class Loc
         ["Settings_Hadith"] = ("Tampilkan hadits harian", "Show a daily hadith"),
         ["Settings_HadithHint"] = ("Satu hadits Arbain Nawawi tiap pagi, dari myquran.com",
                                    "One hadith from an-Nawawi's Forty each morning"),
+        ["Settings_PrayerDhikr"] = ("Dzikir singkat sebelum sholat", "Short dhikr before prayer"),
+        ["Settings_PrayerDhikrHint"] = ("Istighfar, tahmid, atau tahlil di pengingat sebelum waktu sholat",
+                                        "Istighfar, tahmid or tahlil on the reminder before each prayer"),
 
         // ---- meetings ----
         ["Settings_Meeting"] = ("Meeting", "Meetings"),

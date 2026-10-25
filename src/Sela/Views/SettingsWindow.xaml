@@ -918,6 +918,16 @@
                                            Style="{StaticResource Hint}" Margin="0,2,0,0" />
                             </StackPanel>
                         </CheckBox>
+
+                        <CheckBox x:Name="PrayerDhikrToggle" Style="{StaticResource Switch}" Margin="0,8,0,4"
+                                  AutomationProperties.Name="{Binding [Settings_PrayerDhikr], Source={x:Static l:Loc.Instance}}"
+                                  AutomationProperties.HelpText="{Binding [Settings_PrayerDhikrHint], Source={x:Static l:Loc.Instance}}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [Settings_PrayerDhikr], Source={x:Static l:Loc.Instance}}" />
+                                <TextBlock Text="{Binding [Settings_PrayerDhikrHint], Source={x:Static l:Loc.Instance}}"
+                                           Style="{StaticResource Hint}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </CheckBox>
                     </StackPanel>
                 </Border>
 

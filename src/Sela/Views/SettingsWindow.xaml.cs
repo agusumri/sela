@@ -234,6 +234,7 @@ public partial class SettingsWindow : Window
         HabitRemindersEnabled = s.HabitRemindersEnabled,
         HabitEnabled = s.HabitEnabled is null ? new() : new Dictionary<Habit, bool>(s.HabitEnabled),
         DailyHadithCard = s.DailyHadithCard,
+        PrayerDhikr = s.PrayerDhikr,
         Language = s.Language,
         CityLatitude = s.CityLatitude,
         CityLongitude = s.CityLongitude,
@@ -257,6 +258,7 @@ public partial class SettingsWindow : Window
         foreach (var (habit, box) in HabitBoxes)
             box.IsChecked = _settings.HabitEnabled.TryGetValue(habit, out var on) && on;
         HadithToggle.IsChecked = _settings.DailyHadithCard;
+        PrayerDhikrToggle.IsChecked = _settings.PrayerDhikr;
         UpdateHabitEnabled();
     }
 
@@ -266,6 +268,7 @@ public partial class SettingsWindow : Window
         foreach (var (habit, box) in HabitBoxes)
             _settings.HabitEnabled[habit] = box.IsChecked == true;
         _settings.DailyHadithCard = HadithToggle.IsChecked == true;
+        _settings.PrayerDhikr = PrayerDhikrToggle.IsChecked == true;
     }
 
     private void OnHabitToggled(object sender, RoutedEventArgs e) => UpdateHabitEnabled();
