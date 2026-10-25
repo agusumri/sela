@@ -14,10 +14,12 @@
 
 <p align="center">
   Jeda sejenak di sela kesibukan.<br>
-  Notch kecil di atas layar Windows untuk jadwal sholat, adzan, pengingat ibadah harian, dan meeting.
+  Notch kecil di atas layar Windows untuk jadwal sholat, adzan, pengingat ibadah harian, dan meeting.<br><br>
+  <a href="https://agusumri.github.io/sela/"><b>Kunjungi website →</b></a>
 </p>
 
 <p align="center">
+  <a href="https://agusumri.github.io/sela/"><img alt="Website" src="https://img.shields.io/badge/website-agusumri.github.io%2Fsela-3DDC97"></a>
   <a href="https://github.com/agusumri/sela/releases/latest"><img alt="Rilis terbaru" src="https://img.shields.io/github/v/release/agusumri/sela?color=3DDC97&label=unduh"></a>
   <a href="LICENSE"><img alt="Lisensi MIT" src="https://img.shields.io/badge/lisensi-MIT-3DDC97"></a>
   <img alt="Windows 10 dan 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-4C9BFF">

@@ -14,10 +14,12 @@
 
 <p align="center">
   A short pause between everything else.<br>
-  A small notch at the top of your Windows screen for prayer times, the adhan, daily reminders, and meetings.
+  A small notch at the top of your Windows screen for prayer times, the adhan, daily reminders, and meetings.<br><br>
+  <a href="https://agusumri.github.io/sela/"><b>Visit the website →</b></a>
 </p>
 
 <p align="center">
+  <a href="https://agusumri.github.io/sela/"><img alt="Website" src="https://img.shields.io/badge/website-agusumri.github.io%2Fsela-3DDC97"></a>
   <a href="https://github.com/agusumri/sela/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/agusumri/sela?color=3DDC97&label=download"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-3DDC97"></a>
   <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-4C9BFF">
