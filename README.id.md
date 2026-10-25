@@ -6,6 +6,10 @@
   <img src="docs/images/id/hero.png" alt="Sela: notch hitam di tengah atas layar berisi maskot bulan sabit dan countdown sholat, di sebelah panel jadwal sholat" width="100%">
 </p>
 
+<p align="center">
+  <img src="docs/brand/logo/sela-logo-512.png" alt="Logo Sela: bulan sabit hijau di dalam pill notch hitam" width="112">
+</p>
+
 <h1 align="center">Sela</h1>
 
 <p align="center">

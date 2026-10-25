@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256">
+  <title>Sela</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#222222"/>
+      <stop offset="1" stop-color="#0B0B0B"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A3A3A"/>
+      <stop offset="1" stop-color="#151515"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3DDC97" stop-opacity="0.333"/>
+      <stop offset="1" stop-color="#3DDC97" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="moon" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1"
+                    gradientTransform="matrix(60.668 0 0 61.94 83 97.06)">
+      <stop offset="0" stop-color="#8AF5C6"/>
+      <stop offset="0.55" stop-color="#3DDC97"/>
+      <stop offset="1" stop-color="#22B477"/>
+    </linearGradient>
+    <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="#fff"/>
+      <circle cx="127" cy="118" r="25" fill="#000"/>
+    </mask>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#tile)"/>
+  <rect x="32" y="82" width="192" height="92" rx="46" fill="#000" stroke="url(#rim)" stroke-width="3"/>
+  <ellipse cx="114" cy="128" rx="46" ry="40" fill="url(#glow)"/>
+  <circle cx="114" cy="128" r="31" fill="url(#moon)" mask="url(#cut)"/>
+  <circle cx="176" cy="128" r="9" fill="#3DDC97"/>
+</svg>

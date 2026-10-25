@@ -6,6 +6,10 @@
   <img src="docs/images/en/hero.png" alt="Sela: a black notch at the top center of the screen with a crescent mascot and a prayer countdown, next to the prayer schedule panel" width="100%">
 </p>
 
+<p align="center">
+  <img src="docs/brand/logo/sela-logo-512.png" alt="Sela logo: a green crescent inside a black notch pill" width="112">
+</p>
+
 <h1 align="center">Sela</h1>
 
 <p align="center">
