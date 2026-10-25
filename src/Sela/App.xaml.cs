@@ -830,12 +830,17 @@ public partial class App : Application, IAppCommands
     private static Dhikr SampleDhikr(DateTime now) =>
         DhikrLibrary.For(DhikrLibrary.Pick(DateOnly.FromDateTime(now), Prayer.Ashar), Loc.Instance.Language);
 
-    /// <summary>--test-dhikr: one "N minutes until Ashar" card carrying a dhikr.</summary>
+    /// <summary>
+    /// --test-dhikr: the "N minutes until Ashar" card once for each dhikr (istighfar, tahmid, tahlil), queued one
+    /// after another. Add --hold to keep each card up until it's clicked.
+    /// </summary>
     private void TestDhikr()
     {
         var now = DateTime.Now;
-        _notch.ShowReminder(new Reminder($"test-dhikr|{Guid.NewGuid():N}", ReminderKind.PrayerSoon, Loc.F("Shell_DemoSoonTitle", AsharName),
-            Loc.F("Shell_DemoSoonBody", AsharName), now.AddMinutes(10).ToString("HH:mm"), null, now, Prayer.Ashar, Dhikr: SampleDhikr(now)));
+        foreach (var kind in Enum.GetValues<DhikrKind>())
+            _notch.ShowReminder(new Reminder($"test-dhikr|{kind}|{Guid.NewGuid():N}", ReminderKind.PrayerSoon, Loc.F("Shell_DemoSoonTitle", AsharName),
+                Loc.F("Shell_DemoSoonBody", AsharName), now.AddMinutes(10).ToString("HH:mm"), null, now, Prayer.Ashar,
+                Dhikr: DhikrLibrary.For(kind, Loc.Instance.Language)));
     }
 
     private async Task ShowAfterDelayAsync(Action show)

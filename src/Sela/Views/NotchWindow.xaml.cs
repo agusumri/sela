@@ -85,6 +85,9 @@ public partial class NotchWindow : Window, INotchHost
     private int _tourStep;
     private static readonly bool ForcedExcited =
         Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--excited", StringComparison.OrdinalIgnoreCase));
+    // Review aid: --hold keeps every reminder card up until it's clicked (no auto-dismiss).
+    private static readonly bool HoldReminders =
+        Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--hold", StringComparison.OrdinalIgnoreCase));
 
 
     public NotchWindow(NotchState state, IAppCommands commands)
@@ -407,6 +410,7 @@ public partial class NotchWindow : Window, INotchHost
         _leaveGrace.Stop();
 
         var (accent, glyph, seconds) = ReminderLook(r);
+        if (HoldReminders) seconds = 24 * 3600; // effectively never; a click still dismisses
         var accentBrush = Frozen(accent);
         ReminderIconBg.Fill = Frozen(accent, 0.16);
         ReminderIcon.Foreground = accentBrush;
