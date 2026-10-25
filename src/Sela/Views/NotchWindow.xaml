@@ -397,8 +397,10 @@
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
                   </Grid.ColumnDefinitions>
-                  <Image Source="{StaticResource SelaLogo}" Width="32" Height="32" VerticalAlignment="Center"
-                         Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"/>
+                  <!-- same tile-less mark as the panel tab bar; -4 left cancels the glow's transparent margin -->
+                  <Image Source="{StaticResource SelaMarkOnBlack}" Height="25" VerticalAlignment="Center" Margin="-4,0,0,0"
+                         Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"
+                         Focusable="False" AutomationProperties.Name="Sela"/>
                   <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                     <TextBlock x:Name="GlanceLabel" Text="{Binding [Notch_NextPrayer], Source={x:Static l:Loc.Instance}}" FontSize="11" Foreground="{StaticResource TextTertiary}"/>
                     <TextBlock FontFamily="{StaticResource DisplayFont}" Typography.NumeralAlignment="Tabular">
