@@ -63,6 +63,15 @@ public interface ICalendarProvider
     Task<IReadOnlyList<CalendarEvent>> GetEventsAsync(DateTime from, DateTime to, CancellationToken ct);
 }
 
+/// <summary>Optional for providers that throttle or cache their own reads (e.g. the iCal feed).</summary>
+public interface IRefreshableCalendarProvider : ICalendarProvider
+{
+    /// <summary>The next GetEventsAsync reads again even inside the throttle window (still one read at a time, same limits).</summary>
+    void RequestFreshFetch();
+    /// <summary>True when the latest read failed, so the events returned (if any) are stale.</summary>
+    bool LastFetchFailed { get; }
+}
+
 public enum ReminderKind { PrayerSoon, PrayerNow, Meeting, Habit, Hadith }
 
 /// <summary>Daily ibadah check-ins Sela asks about.</summary>

@@ -272,7 +272,7 @@ public partial class NotchWindow : Window, INotchHost
         if (e.PropertyName == nameof(SystemParameters.WorkArea))
             Dispatcher.BeginInvoke(Recenter, DispatcherPriority.Background);
         if (e.PropertyName == nameof(SystemParameters.ClientAreaAnimation))
-            Dispatcher.BeginInvoke(() => { UpdateMascotAnimating(); UpdateAdhanUi(); }, DispatcherPriority.Background);
+            Dispatcher.BeginInvoke(() => { UpdateMascotAnimating(); UpdateAdhanUi(); ApplyRefreshing(); }, DispatcherPriority.Background);
     }
 
     protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
@@ -796,7 +796,8 @@ public partial class NotchWindow : Window, INotchHost
         Refresh();
         // Not on the 1 s Now tick: only content that changes the row/card count re-fits the panel.
         if (e.PropertyName is nameof(NotchState.Today) or nameof(NotchState.HiddenPrayers) or nameof(NotchState.Agenda)
-            or nameof(NotchState.CalendarLoading) or nameof(NotchState.HabitsDone))
+            or nameof(NotchState.CalendarLoading) or nameof(NotchState.HabitsDone)
+            or nameof(NotchState.AgendaFailed) or nameof(NotchState.Refreshing))
             UpdatePanelHeight();
     }
 
@@ -920,14 +921,25 @@ public partial class NotchWindow : Window, INotchHost
             AgendaEmptyTitle.Text = Loc.T("Notch_LoadingAgenda");
             AgendaEmptyBody.Text = Loc.T("Notch_JustAMoment");
         }
+        else if (State.AgendaFailed)
+        {
+            AgendaEmptyIcon.Text = "\uE753"; // cloud
+            AgendaEmptyTitle.Text = Loc.T("Notch_AgendaFailed");
+            AgendaEmptyBody.Text = Loc.T("Notch_AgendaFailedHint");
+        }
         else
         {
             AgendaEmptyIcon.Text = "\uE787";
             AgendaEmptyTitle.Text = Loc.T("Notch_NoAgenda");
             AgendaEmptyBody.Text = Loc.T("Notch_TimeToFocus");
         }
+        AgendaRetry.Visibility = !State.CalendarLoading && State.AgendaFailed ? Visibility.Visible : Visibility.Collapsed;
 
         // panel: hadits
         RefreshHadith();
+
+        // panel: refresh button, retry buttons, status line
+        ApplyRefreshing();
+        RefreshStatusLine();
     }
 }

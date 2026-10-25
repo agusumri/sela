@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
@@ -35,7 +36,7 @@ public partial class App : Application, IAppCommands
     private readonly HabitScheduler _habitScheduler = new();
     private HadithService? _hadithService; // null under --mock
     private DateOnly _day;                  // day the habit map / hadith were last refreshed for
-    private bool _hadithBusy, _hadithReloadPending;
+    private SerialJob _hadithJob = null!;
     private AppLanguage? _langOverride;     // --lang=en|id: this session only, never saved
 
     private readonly NotchState _state = new();
@@ -44,12 +45,20 @@ public partial class App : Application, IAppCommands
     private SettingsWindow? _settingsWindow;
     private IAdhanPlayer _adhan = null!;
     private bool _mock; // --mock: fixed fake data; no network, disk, registry or sound
+    private bool _offline; // --offline (debug): IsOnline=false, HTTP fails fast, Outlook unavailable
+    private AgendaCache _agendaCache = new(enabled: false);
+    private IReadOnlyList<CalendarEvent>? _cachedAgenda; // last saved agenda (disk copy), used for failed sources
+    private DateTimeOffset? _cachedAgendaAt;
+    private bool _agendaShown;              // an agenda (fresh or cached) was shown; no more "Loading agenda…"
+    private bool _refreshRunning, _refreshQueued;
+    private DispatcherTimer? _onlineDebounce;
     private readonly List<DispatcherTimer> _timers = new();
     private readonly CancellationTokenSource _shutdown = new();
 
     private DaySchedule? _today, _tomorrow;
     private (DateOnly Date, string CityId, int? Method, bool AsrHanafi) _scheduleKey;
-    private bool _scheduleBusy, _calendarBusy;
+    // One load at a time each; a forced call (RefreshNow) queues one follow-up instead of being dropped.
+    private SerialJob _scheduleJob = null!, _calendarJob = null!;
     private IReadOnlyList<CalendarEvent> _events = Array.Empty<CalendarEvent>();
     private bool? _idleVisible;
 
@@ -65,11 +74,15 @@ public partial class App : Application, IAppCommands
             return;
         }
 
+        _scheduleJob = new SerialJob(LoadScheduleAsync);
+        _calendarJob = new SerialJob(LoadCalendarAsync);
+        _hadithJob = new SerialJob(LoadHadithCoreAsync);
         DispatcherUnhandledException += (_, args) => { Log.Error("UI", args.Exception); args.Handled = true; };
         AppDomain.CurrentDomain.UnhandledException += (_, args) => Log.Write($"Fatal: {args.ExceptionObject}");
         TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Task", args.Exception); args.SetObserved(); };
         Log.Write($"Sela start ({string.Join(' ', e.Args)})");
         _mock = e.Args.Contains("--mock", StringComparer.OrdinalIgnoreCase);
+        _offline = e.Args.Contains("--offline", StringComparer.OrdinalIgnoreCase);
         _langOverride = ParseLanguageArg(e.Args);
         Loc.MissingKeyLog = Log.Write;
 
@@ -84,11 +97,26 @@ public partial class App : Application, IAppCommands
             foreach (var (habit, done) in MockData.HabitsDone())
                 if (done) _tracker.MarkDone(habit, today);
             LoadMockData(e.Args.Contains("--mock-world", StringComparer.OrdinalIgnoreCase) ? MockData.London : null);
+            if (_offline)
+            {
+                // Lets the designer see the cached / failed agenda states without a network.
+                _state.AgendaFromCache = true;
+                _state.AgendaUpdatedAt = DateTime.Now.AddHours(-2);
+                if (e.Args.Contains("--agenda-failed", StringComparer.OrdinalIgnoreCase))
+                {
+                    _events = Array.Empty<CalendarEvent>();
+                    _state.Agenda = _events;
+                    _state.AgendaFromCache = false;
+                    _state.AgendaUpdatedAt = null;
+                    _state.AgendaFailed = true;
+                }
+            }
             _adhan = new SilentAdhanPlayer();
         }
         else
         {
-            _http = new HttpClient();
+            // --offline: every request fails at once and nothing reaches the network.
+            _http = _offline ? new HttpClient(new OfflineHttpHandler()) : new HttpClient();
             _http.DefaultRequestHeaders.UserAgent.ParseAdd("Sela/1.0");
             _store = new SettingsStore();
             _uiPath = Path.Combine(Path.GetDirectoryName(SettingsStore.DefaultPath)!, "ui.json");
@@ -106,6 +134,8 @@ public partial class App : Application, IAppCommands
             _adhan = new AdhanPlayer();
             _tracker = HabitTracker.Default();
             _hadithService = new HadithService(new HadithClient(_http, Log.Write), log: Log.Write);
+            _agendaCache = new AgendaCache(enabled: true);
+            LoadCachedAgenda(); // the Agenda tab has content before the first fetch (and offline)
         }
         _adhan.PlayingChanged += () => _state.AdhanPlaying = _adhan.IsPlaying;
         Loc.Instance.LanguageChanged += OnLanguageChanged;
@@ -123,6 +153,8 @@ public partial class App : Application, IAppCommands
         StartTimer(TimeSpan.FromSeconds(60), () => _ = RefreshCalendarAsync());
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
         SystemEvents.TimeChanged += OnTimeChanged;
+        _state.IsOnline = !_offline && NetworkInterface.GetIsNetworkAvailable();
+        if (!_offline) NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
 
         UpdateIdleVisibility();
         RefreshNow();
@@ -141,6 +173,8 @@ public partial class App : Application, IAppCommands
         {
             SystemEvents.PowerModeChanged -= OnPowerModeChanged;
             SystemEvents.TimeChanged -= OnTimeChanged;
+            NetworkChange.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
+            _onlineDebounce?.Stop();
             Loc.Instance.LanguageChanged -= OnLanguageChanged;
             foreach (var t in _timers) t.Stop();
             _adhan?.Stop();
@@ -234,10 +268,39 @@ public partial class App : Application, IAppCommands
 
     public void RefreshNow()
     {
-        _scheduleKey = default; // force schedule reload
-        _ = ReminderTickAsync();
-        _ = RefreshCalendarAsync();
+        if (_refreshRunning) { _refreshQueued = true; return; } // coalesces into exactly one more run
+        _ = RunRefreshAsync();
     }
+
+    private async Task RunRefreshAsync()
+    {
+        _refreshRunning = true;
+        _state.Refreshing = true;
+        try
+        {
+            do
+            {
+                _refreshQueued = false;
+                var minSpin = Task.Delay(TimeSpan.FromMilliseconds(400)); // keeps the button spin visible
+                if (_mock)
+                    await Task.Delay(TimeSpan.FromMilliseconds(600)); // --mock: no network
+                else
+                    await Task.WhenAll(ReminderTickAsync(force: true), RefreshCalendarAsync(force: true), LoadHadithAsync(force: true));
+                await minSpin;
+            }
+            while (_refreshQueued && !_shutdown.IsCancellationRequested);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Segarkan", ex);
+        }
+        finally
+        {
+            _refreshRunning = false;
+            _state.Refreshing = false;
+        }
+    }
+
 
     // ---- settings ----
 
@@ -368,15 +431,16 @@ public partial class App : Application, IAppCommands
     {
         _tray?.SetNextPrayer(_state.Next);
         if (_mock) { _state.Hadith = MockData.Hadith(_day); return; }
-        if (_hadithBusy) _hadithReloadPending = true; // the running load finishes in the old language
-        else _ = LoadHadithAsync();
+        _ = LoadHadithAsync(queue: true); // a running load finishes in the old language; this one follows
     }
 
     private AgendaService CreateAgenda()
     {
         var providers = new List<ICalendarProvider>();
-        if (_settings.OutlookEnabled) providers.Add(new OutlookCalendarProvider(() => _settings.DefaultMeetingReminderMinutes, Log.Write));
-        providers.Add(_ics);
+        if (_settings.OutlookEnabled)
+            providers.Add(new OutlookCalendarProvider(() => _settings.DefaultMeetingReminderMinutes, Log.Write, forceUnavailable: _offline));
+        // Only a configured feed counts as a source: an empty one would "succeed" and mark the agenda fresh offline.
+        if (IcsCalendarProvider.NormalizeUrl(_settings.GoogleIcalUrl) is not null) providers.Add(_ics);
         return new AgendaService(providers, log: Log.Write);
     }
 
@@ -412,11 +476,11 @@ public partial class App : Application, IAppCommands
         _notch.SetIdleVisible(visible);
     }
 
-    private async Task ReminderTickAsync()
+    private async Task ReminderTickAsync(bool force = false)
     {
         try
         {
-            await EnsureScheduleAsync();
+            await EnsureScheduleAsync(force);
             CheckDayChanged();
             // --mock is for demos and screenshots: no automatic cards, only the explicit
             // --demo / --test-* flags show reminders (otherwise a sample habit or hadith card
@@ -477,17 +541,23 @@ public partial class App : Application, IAppCommands
         _state.HabitsDone = map;
     }
 
-    private async Task LoadHadithAsync()
+    /// <param name="force">Bypass the retry backoff (RefreshNow).</param>
+    /// <param name="queue">When a load is running, load once more afterwards (e.g. the language changed).</param>
+    private Task LoadHadithAsync(bool force = false, bool queue = false)
     {
-        if (_mock) { _state.Hadith = MockData.Hadith(_day); return; }
-        if (_hadithService is not { } service || _hadithBusy) return;
-        _hadithBusy = true;
-        _hadithReloadPending = false;
+        if (_mock) { _state.Hadith = MockData.Hadith(_day); return Task.CompletedTask; }
+        return _hadithJob.Run(force, queue);
+    }
+
+    private async Task LoadHadithCoreAsync(bool force)
+    {
+        if (_hadithService is not { } service || _shutdown.IsCancellationRequested) return;
         _state.HadithLoading = true;
         try
         {
             var language = Loc.Instance.Language;
-            var hadith = await Task.Run(() => service.GetTodayAsync(_shutdown.Token, language));
+            var hadith = await Task.Run(() => service.GetTodayAsync(_shutdown.Token, language, force));
+            // Offline: keep today's hadith on screen rather than blanking it.
             if (hadith is not null || _state.Hadith?.Date != _day) _state.Hadith = hadith;
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested) { }
@@ -498,9 +568,7 @@ public partial class App : Application, IAppCommands
         finally
         {
             _state.HadithLoading = false;
-            _hadithBusy = false;
         }
-        if (_hadithReloadPending && !_shutdown.IsCancellationRequested) _ = LoadHadithAsync();
     }
 
     /// <summary>Shows "Hadits hari ini" once a day, from Subuh+30m (07:00 without a schedule).</summary>
@@ -525,22 +593,35 @@ public partial class App : Application, IAppCommands
         Deliver(new Reminder($"hadith|{now:yyyyMMdd}", ReminderKind.Hadith, hadith.Title, hadith.Translation,
             null, null, now));
 
-    private async Task EnsureScheduleAsync()
+    /// <param name="force">RefreshNow: load even when today's schedule is loaded, bypassing the retry backoff
+    /// (queued behind a running load instead of being dropped).</param>
+    private Task EnsureScheduleAsync(bool force = false)
     {
-        if (_mock) return; // fixed schedule set by LoadMockData
+        if (_mock) return Task.CompletedTask; // fixed schedule set by LoadMockData
+        if (!force && ScheduleKey(DateOnly.FromDateTime(DateTime.Now), _settings.GetCity()) == _scheduleKey
+            && _today is not null && _tomorrow is not null) return Task.CompletedTask;
+        return _scheduleJob.Run(force);
+    }
+
+    private async Task LoadScheduleAsync(bool force)
+    {
+        if (_shutdown.IsCancellationRequested) return;
         var date = DateOnly.FromDateTime(DateTime.Now);
         var city = _settings.GetCity();
         var key = ScheduleKey(date, city);
-        if (_scheduleBusy || (key == _scheduleKey && _today is not null && _tomorrow is not null)) return;
-
-        _scheduleBusy = true;
+        if (!force && key == _scheduleKey && _today is not null && _tomorrow is not null) return;
         try
         {
             var calc = _settings.GetPrayerCalc();
-            var today = await _prayers.GetDayAsync(city, date, _shutdown.Token, calc);
-            var tomorrow = await _prayers.GetDayAsync(city, date.AddDays(1), _shutdown.Token, calc);
+            var today = await _prayers.GetDayAsync(city, date, _shutdown.Token, calc, force);
+            var tomorrow = await _prayers.GetDayAsync(city, date.AddDays(1), _shutdown.Token, calc, force);
             // City or calculation method changed meanwhile; next tick reloads.
             if (ScheduleKey(date, _settings.GetCity()) != key) return;
+
+            // A failed re-validation never blanks a schedule that is already shown for this key.
+            bool sameKey = key == _scheduleKey;
+            if (today is null && sameKey) today = _today;
+            if (tomorrow is null && sameKey) tomorrow = _tomorrow;
 
             _today = today;
             _tomorrow = tomorrow;
@@ -549,7 +630,7 @@ public partial class App : Application, IAppCommands
             _state.ScheduleAvailable = today is not null;
             _state.City = today?.City ?? city;
             ClockTick();
-            _ = PrefetchAsync(city, calc);
+            _ = PrefetchAsync(city, calc, force);
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested) { }
         catch (Exception ex)
@@ -557,28 +638,43 @@ public partial class App : Application, IAppCommands
             Log.Error("Jadwal", ex);
             _state.ScheduleAvailable = _today is not null;
         }
-        finally
-        {
-            _scheduleBusy = false;
-        }
     }
 
     /// <summary>Cache key of the loaded schedule: a new day, place or calculation method forces a reload.</summary>
     private (DateOnly, string, int?, bool) ScheduleKey(DateOnly date, City city) =>
         (date, city.Id, _settings.PrayerMethod, _settings.AsrHanafi);
 
-    private async Task PrefetchAsync(City city, PrayerCalc calc)
+    private async Task PrefetchAsync(City city, PrayerCalc calc, bool force)
     {
-        try { await _prayers.PrefetchAsync(city, _shutdown.Token, calc); }
+        try { await _prayers.PrefetchAsync(city, _shutdown.Token, calc, force); }
         catch (Exception ex) when (ex is not OperationCanceledException) { Log.Error("Prefetch", ex); }
         catch (OperationCanceledException) { }
     }
 
-    private async Task RefreshCalendarAsync()
+    /// <param name="force">RefreshNow: providers read again now, and a running fetch queues one more.</param>
+    private Task RefreshCalendarAsync(bool force = false) =>
+        _mock ? Task.CompletedTask : _calendarJob.Run(force); // --mock keeps its fixed agenda
+
+    /// <summary>Startup: show the saved agenda (≤ 48 h old) until the first fetch lands.</summary>
+    private void LoadCachedAgenda()
     {
-        if (_mock || _calendarBusy) return; // --mock keeps its fixed agenda
-        _calendarBusy = true;
-        _state.CalendarLoading = true;
+        if (_agendaCache.Load() is not { } cached) return;
+        _cachedAgenda = cached.Events;
+        _cachedAgendaAt = cached.SavedAt;
+        var now = DateTime.Now;
+        // Anything still upcoming counts: the next fetch decides per source what stays.
+        _events = cached.Events.Where(e => e.End > now).ToList();
+        _state.Agenda = TodayRemaining(_events, now);
+        _state.AgendaUpdatedAt = cached.SavedAt.LocalDateTime;
+        _state.AgendaFromCache = true;
+        _agendaShown = true;
+    }
+
+    private async Task LoadCalendarAsync(bool force)
+    {
+        if (_shutdown.IsCancellationRequested) return;
+        // Only before anything was shown: a periodic refresh must not flash "Loading agenda…".
+        if (!_agendaShown) _state.CalendarLoading = true;
         try
         {
             var now = DateTime.Now;
@@ -586,12 +682,36 @@ public partial class App : Application, IAppCommands
             var to = now.Date.AddDays(2); // end of tomorrow
             var agenda = _agenda;
             // Run off the UI thread: providers may do blocking work (process lookup, COM thread start).
-            var events = await Task.Run(() => agenda.GetEventsAsync(from, to, _shutdown.Token));
-            _events = events;
-
+            var result = await Task.Run(() => agenda.GetEventsWithStatusAsync(from, to, _shutdown.Token, force));
             now = DateTime.Now;
-            var endOfToday = now.Date.AddDays(1);
-            _state.Agenda = events.Where(e => e.End > now && e.Start < endOfToday).ToList();
+
+            bool anySucceeded = result.Configured.Any(s => !result.Failed.Contains(s));
+            var (events, usedCache) = AgendaMerge.Merge(result.Events, result.Failed, _cachedAgenda, now);
+            if (anySucceeded)
+            {
+                // Saved: fresh events of the sources that worked plus the cached ones still standing in for
+                // failed sources, so a later outage of either source still has something to show.
+                var savedAt = DateTimeOffset.Now;
+                var toSave = events.ToList();
+                _agendaCache.Save(toSave, savedAt);
+                _cachedAgenda = toSave;
+                if (!usedCache) _cachedAgendaAt = savedAt;
+            }
+
+            bool allFailed = result.Configured.Count > 0 && !anySucceeded;
+            if (allFailed && events.Count == 0 && _events.Count > 0)
+            {
+                // Never replace a shown agenda with an empty list because of a failure.
+                _state.AgendaFailed = false;
+                return;
+            }
+
+            _events = events;
+            _state.Agenda = TodayRemaining(events, now);
+            _agendaShown = true;
+            _state.AgendaFromCache = usedCache;
+            _state.AgendaUpdatedAt = anySucceeded ? now : _cachedAgendaAt?.LocalDateTime ?? _state.AgendaUpdatedAt;
+            _state.AgendaFailed = allFailed && events.Count == 0;
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested) { }
         catch (Exception ex)
@@ -601,8 +721,37 @@ public partial class App : Application, IAppCommands
         finally
         {
             _state.CalendarLoading = false;
-            _calendarBusy = false;
         }
+    }
+
+    private static List<CalendarEvent> TodayRemaining(IEnumerable<CalendarEvent> events, DateTime now)
+    {
+        var endOfToday = now.Date.AddDays(1);
+        return events.Where(e => e.End > now && e.Start < endOfToday).ToList();
+    }
+
+    private void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e) =>
+        Dispatcher.BeginInvoke(() => SetOnline(e.IsAvailable)); // raised on a thread-pool thread
+
+    private void SetOnline(bool online)
+    {
+        if (_shutdown.IsCancellationRequested) return;
+        bool cameBack = online && !_state.IsOnline;
+        _state.IsOnline = online;
+        if (!online) { _onlineDebounce?.Stop(); return; }
+        if (!cameBack) return;
+        // Networks flap while connecting (Wi-Fi, VPN, DHCP): refresh once it has been up for ~2 s.
+        if (_onlineDebounce is null)
+        {
+            _onlineDebounce = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            _onlineDebounce.Tick += (_, _) =>
+            {
+                _onlineDebounce.Stop();
+                if (_state.IsOnline) RefreshNow();
+            };
+        }
+        _onlineDebounce.Stop();
+        _onlineDebounce.Start();
     }
 
     private void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)

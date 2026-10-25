@@ -9,7 +9,7 @@ namespace Sela.Core;
 /// Downloads are throttled to one attempt per 5 minutes per URL, limited to 10 MB and 15 s.
 /// Never throws for network/parse problems: logs (without the secret URL) and returns cached or empty data.
 /// </summary>
-public sealed class IcsCalendarProvider : ICalendarProvider
+public sealed class IcsCalendarProvider : IRefreshableCalendarProvider
 {
     public static readonly TimeSpan RefreshInterval = TimeSpan.FromMinutes(5);
     public static readonly TimeSpan FetchTimeout = TimeSpan.FromSeconds(15);
@@ -26,6 +26,8 @@ public sealed class IcsCalendarProvider : ICalendarProvider
     private string? _cachedUrl;
     private string? _cachedText;
     private DateTimeOffset _lastAttempt = DateTimeOffset.MinValue;
+    private volatile bool _forceNext;
+    private volatile bool _lastFetchFailed;
     private string? _parsedText;
     private Calendar? _parsedCalendar;
 
@@ -47,6 +49,12 @@ public sealed class IcsCalendarProvider : ICalendarProvider
 
     public CalendarSource Source => CalendarSource.Google;
 
+    /// <summary>The next read downloads again even inside <see cref="RefreshInterval"/> (still one download at a time).</summary>
+    public void RequestFreshFetch() => _forceNext = true;
+
+    /// <summary>True when the latest download failed (cached text, if any, is still served).</summary>
+    public bool LastFetchFailed => _lastFetchFailed;
+
     /// <summary>Accepts https:// and webcal:// (rewritten to https://); anything else returns null.</summary>
     public static Uri? NormalizeUrl(string? url)
     {
@@ -60,7 +68,7 @@ public sealed class IcsCalendarProvider : ICalendarProvider
     public async Task<IReadOnlyList<CalendarEvent>> GetEventsAsync(DateTime from, DateTime to, CancellationToken ct)
     {
         var uri = NormalizeUrl(_urlProvider());
-        if (uri is null) return Array.Empty<CalendarEvent>();
+        if (uri is null) { _lastFetchFailed = false; return Array.Empty<CalendarEvent>(); }
 
         var text = await GetTextAsync(uri, ct).ConfigureAwait(false);
         if (text is null) return Array.Empty<CalendarEvent>();
@@ -94,16 +102,21 @@ public sealed class IcsCalendarProvider : ICalendarProvider
                 _cachedUrl = key;
                 _cachedText = null;
                 _lastAttempt = DateTimeOffset.MinValue;
+                _lastFetchFailed = false;
             }
-            if (now - _lastAttempt < RefreshInterval) return _cachedText;
+            bool force = _forceNext;
+            _forceNext = false;
+            if (!force && now - _lastAttempt < RefreshInterval) return _cachedText;
             _lastAttempt = now;
 
             try
             {
                 _cachedText = await SafeIo.GetStringAsync(_http, uri, FetchTimeout, MaxBytes, "text/calendar", ct).ConfigureAwait(false);
+                _lastFetchFailed = false;
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
+                _lastFetchFailed = true;
                 // Message deliberately omits the URL: it contains the private calendar token.
                 _log?.Invoke($"Google Calendar: unduhan gagal ({ex.GetType().Name}: {ex.Message})");
             }

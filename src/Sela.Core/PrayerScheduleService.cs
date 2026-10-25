@@ -44,20 +44,20 @@ public sealed class PrayerScheduleService
     /// Schedule for the date, or null when it is neither cached nor fetchable (show "schedule not available, check connection").
     /// <paramref name="calc"/> applies to world cities only; null = defaults.
     /// </summary>
-    public async Task<DaySchedule?> GetDayAsync(City city, DateOnly date, CancellationToken ct, PrayerCalc? calc = null)
+    public async Task<DaySchedule?> GetDayAsync(City city, DateOnly date, CancellationToken ct, PrayerCalc? calc = null, bool force = false)
     {
-        var month = await GetMonthAsync(city, date.Year, date.Month, calc ?? new PrayerCalc(), ct).ConfigureAwait(false);
+        var month = await GetMonthAsync(city, date.Year, date.Month, calc ?? new PrayerCalc(), ct, force).ConfigureAwait(false);
         return month?.FirstOrDefault(d => d.Date == date);
     }
 
     /// <summary>Ensures the current and next month are cached so month rollover works offline. Never throws except on cancellation or a bad city.</summary>
-    public async Task PrefetchAsync(City city, CancellationToken ct, PrayerCalc? calc = null)
+    public async Task PrefetchAsync(City city, CancellationToken ct, PrayerCalc? calc = null, bool force = false)
     {
         calc ??= new PrayerCalc();
         var today = DateOnly.FromDateTime(_time.GetLocalNow().DateTime);
         var next = today.AddMonths(1);
-        await GetMonthAsync(city, today.Year, today.Month, calc, ct).ConfigureAwait(false);
-        await GetMonthAsync(city, next.Year, next.Month, calc, ct).ConfigureAwait(false);
+        await GetMonthAsync(city, today.Year, today.Month, calc, ct, force).ConfigureAwait(false);
+        await GetMonthAsync(city, next.Year, next.Month, calc, ct, force).ConfigureAwait(false);
     }
 
     /// <summary>Cache key (also the file name stem). Ids become part of a file name, so only digits are accepted.</summary>
@@ -77,7 +77,7 @@ public sealed class PrayerScheduleService
         return string.Create(CultureInfo.InvariantCulture, $"{id}-{year:D4}-{month:D2}");
     }
 
-    private async Task<IReadOnlyList<DaySchedule>?> GetMonthAsync(City city, int year, int month, PrayerCalc calc, CancellationToken ct)
+    private async Task<IReadOnlyList<DaySchedule>?> GetMonthAsync(City city, int year, int month, PrayerCalc calc, CancellationToken ct, bool force = false)
     {
         ArgumentNullException.ThrowIfNull(city);
         var key = KeyFor(city, calc, year, month);
@@ -94,7 +94,7 @@ public sealed class PrayerScheduleService
             if (disk is not null && now - disk.FetchedAt < MaxCacheAge)
                 return _memory[key] = disk.Schedules;
 
-            if (_lastFailure.TryGetValue(key, out var failedAt) && now - failedAt < RetryBackoff)
+            if (!force && _lastFailure.TryGetValue(key, out var failedAt) && now - failedAt < RetryBackoff)
                 return disk?.Schedules;
 
             try

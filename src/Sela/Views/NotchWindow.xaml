@@ -9,6 +9,10 @@
         UseLayoutRounding="True" SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Ideal" TextOptions.TextRenderingMode="Grayscale">
   <Window.Resources>
+   <ResourceDictionary>
+    <ResourceDictionary.MergedDictionaries>
+      <ResourceDictionary Source="/Sela;component/Assets/SelaIcon.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
     <!-- palette -->
     <Color x:Key="SholatColor">#3DDC97</Color>
     <Color x:Key="MeetingColor">#4C9BFF</Color>
@@ -78,6 +82,7 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.86"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter TargetName="B" Property="Opacity" Value="0.55"/><Setter Property="Cursor" Value="Arrow"/></Trigger>
               <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.7"/></Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -135,6 +140,7 @@
                 <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.7"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Cursor" Value="Arrow"/></Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
@@ -335,6 +341,7 @@
         </DataTrigger>
       </DataTemplate.Triggers>
     </DataTemplate>
+   </ResourceDictionary>
   </Window.Resources>
 
   <Grid>
@@ -390,10 +397,8 @@
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
                   </Grid.ColumnDefinitions>
-                  <Grid Width="32" Height="32" VerticalAlignment="Center">
-                    <Ellipse Fill="{StaticResource SholatChip}"/>
-                    <TextBlock Style="{StaticResource Icon}" Text="&#xE708;" FontSize="15" Foreground="{StaticResource Sholat}"/>
-                  </Grid>
+                  <Image Source="{StaticResource SelaLogo}" Width="32" Height="32" VerticalAlignment="Center"
+                         Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"/>
                   <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                     <TextBlock x:Name="GlanceLabel" Text="{Binding [Notch_NextPrayer], Source={x:Static l:Loc.Instance}}" FontSize="11" Foreground="{StaticResource TextTertiary}"/>
                     <TextBlock FontFamily="{StaticResource DisplayFont}" Typography.NumeralAlignment="Tabular">
@@ -448,14 +453,15 @@
               </Border>
               <Grid Margin="20,14,20,22">
                 <Grid.RowDefinitions>
-                  <RowDefinition Height="Auto"/><RowDefinition Height="*"/>
+                  <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <!-- top bar: centered segmented switch, quiet settings on the right -->
                 <Grid x:Name="PanelTop">
                   <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
-                  <Border Width="228" Height="30" CornerRadius="15" Background="#141417" BorderBrush="#1C1C20" BorderThickness="1"
-                          Padding="2" HorizontalAlignment="Center">
+                  <!-- 200 wide, centered between the mark (ends x 33) and refresh (starts x 248): ~7.5 DIP gap each side -->
+                  <Border Width="200" Height="30" CornerRadius="15" Background="#141417" BorderBrush="#1C1C20" BorderThickness="1"
+                          Padding="2" HorizontalAlignment="Center" Margin="0,0,23,0">
                     <Grid>
                       <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                       <Border x:Name="SegmentThumb" CornerRadius="12.5" Background="#2A2A30">
@@ -469,14 +475,37 @@
                       <RadioButton x:Name="TabHadits" Grid.Column="2" Style="{StaticResource Segment}" FontSize="12" Content="{Binding [Notch_TabHadits], Source={x:Static l:Loc.Instance}}" Checked="Tab_Checked"/>
                     </Grid>
                   </Border>
+                  <!-- brand mark at the left end of the tab bar, on every tab -->
+                  <!-- tile-less mark for the black panel: 25 DIP tall ≈ 19 DIP crescent, ~37 wide with the dot.
+                       -4 left cancels the glow's transparent margin so the crescent lines up with the content edge. -->
+                  <Image x:Name="PanelLogo" Source="{StaticResource SelaMarkOnBlack}" Height="25" HorizontalAlignment="Left"
+                         VerticalAlignment="Center" Margin="-4,0,0,0" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                         IsHitTestVisible="False" Focusable="False" AutomationProperties.Name="Sela"/>
+                  <!-- refresh: turns slowly while a manual refresh runs (dimmed instead when OS animations are off) -->
+                  <Button x:Name="RefreshButton" Style="{StaticResource GhostButton}" HorizontalAlignment="Right" Margin="0,0,28,0" Click="Retry_Click"
+                          ToolTip="{Binding [Notch_Refresh], Source={x:Static l:Loc.Instance}}" ToolTipService.ShowOnDisabled="True"
+                          AutomationProperties.Name="{Binding [Notch_Refresh], Source={x:Static l:Loc.Instance}}">
+                    <TextBlock x:Name="RefreshIcon" Style="{StaticResource Icon}" Text="&#xE72C;" FontSize="12.5" RenderTransformOrigin="0.5,0.5">
+                      <TextBlock.RenderTransform><RotateTransform x:Name="RefreshSpin"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                  </Button>
                   <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Right" Margin="0,0,-4,0" Click="Settings_Click"
                           ToolTip="{Binding [Notch_Settings], Source={x:Static l:Loc.Instance}}" AutomationProperties.Name="{Binding [Notch_Settings], Source={x:Static l:Loc.Instance}}">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" FontSize="13"/>
                   </Button>
                 </Grid>
 
+                <!-- quiet status under the top bar: offline, or when a cached agenda was last updated -->
+                <StackPanel x:Name="StatusLine" Grid.Row="1" Orientation="Horizontal" Margin="4,10,4,-4" Height="16"
+                            Visibility="Collapsed" AutomationProperties.LiveSetting="Polite">
+                  <TextBlock x:Name="StatusGlyph" Style="{StaticResource Icon}" FontSize="10.5" Foreground="{StaticResource TextTertiary}"
+                             Margin="0,1,6,0"/>
+                  <TextBlock x:Name="StatusText" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis" Typography.NumeralAlignment="Tabular"/>
+                </StackPanel>
+
                 <!-- Sholat -->
-                <Grid x:Name="SholatPage" Grid.Row="1" Margin="0,16,0,0">
+                <Grid x:Name="SholatPage" Grid.Row="2" Margin="0,16,0,0">
                   <Grid x:Name="SholatContent">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <Grid x:Name="SholatHeader" Margin="4,0,4,12">
@@ -516,12 +545,12 @@
                     <TextBlock Text="{Binding [Notch_CheckInternet], Source={x:Static l:Loc.Instance}}" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
                                HorizontalAlignment="Center" Margin="0,3,0,0"/>
                     <Button Style="{StaticResource PillButton}" Background="{StaticResource Sholat}" Foreground="#000000"
-                            Content="{Binding [Notch_Retry], Source={x:Static l:Loc.Instance}}" HorizontalAlignment="Center" Margin="0,16,0,0" Click="Retry_Click"/>
+                            x:Name="SholatRetry" HorizontalAlignment="Center" Margin="0,16,0,0" Click="Retry_Click"/>
                   </StackPanel>
                 </Grid>
 
                 <!-- Agenda -->
-                <Grid x:Name="AgendaPage" Grid.Row="1" Margin="0,16,0,0" Visibility="Collapsed">
+                <Grid x:Name="AgendaPage" Grid.Row="2" Margin="0,16,0,0" Visibility="Collapsed">
                   <Grid x:Name="AgendaContent">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <Grid x:Name="AgendaHeader" Margin="4,0,4,12">
@@ -556,12 +585,14 @@
                     <TextBlock x:Name="AgendaEmptyTitle" Text="{Binding [Notch_NoAgenda], Source={x:Static l:Loc.Instance}}" FontSize="15" FontWeight="SemiBold"
                                HorizontalAlignment="Center" Margin="0,14,0,0"/>
                     <TextBlock x:Name="AgendaEmptyBody" Text="{Binding [Notch_TimeToFocus], Source={x:Static l:Loc.Instance}}" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
-                               HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                               HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="260" Margin="0,3,0,0"/>
+                    <Button x:Name="AgendaRetry" Style="{StaticResource PillButton}" HorizontalAlignment="Center" Margin="0,16,0,0"
+                            Click="Retry_Click" Visibility="Collapsed"/>
                   </StackPanel>
                 </Grid>
 
                 <!-- Hadits: today's hadith, then a pinned "ibadah hari ini" strip -->
-                <Grid x:Name="HaditsPage" Grid.Row="1" Margin="0,16,0,0" Visibility="Collapsed">
+                <Grid x:Name="HaditsPage" Grid.Row="2" Margin="0,16,0,0" Visibility="Collapsed">
                   <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                   <Grid x:Name="HaditsContent">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -604,6 +635,8 @@
                                HorizontalAlignment="Center" Margin="0,14,0,0"/>
                     <TextBlock x:Name="HaditsEmptyBody" Text="{Binding [Notch_CheckInternet], Source={x:Static l:Loc.Instance}}" FontSize="12.5" Foreground="{StaticResource TextSecondary}"
                                HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                    <Button x:Name="HaditsRetry" Style="{StaticResource PillButton}" Background="{StaticResource Sholat}" Foreground="#000000"
+                            HorizontalAlignment="Center" Margin="0,16,0,0" Click="Retry_Click"/>
                   </StackPanel>
 
                   <!-- ibadah hari ini -->

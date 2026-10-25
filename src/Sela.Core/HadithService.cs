@@ -163,7 +163,7 @@ public sealed class HadithService
     /// Today's hadith in <paramref name="language"/>; null when offline and nothing in that language is cached.
     /// Both languages show the same hadith number on a given day. Never throws except on cancellation.
     /// </summary>
-    public async Task<Hadith?> GetTodayAsync(CancellationToken ct, AppLanguage language = AppLanguage.Indonesian)
+    public async Task<Hadith?> GetTodayAsync(CancellationToken ct, AppLanguage language = AppLanguage.Indonesian, bool force = false)
     {
         if (!Enum.IsDefined(language)) language = AppLanguage.Indonesian;
         var today = DateOnly.FromDateTime(_time.GetLocalNow().DateTime);
@@ -176,7 +176,7 @@ public sealed class HadithService
             if (ReadCache(path, language) is { } disk && disk.Date == today) return _today[language] = disk;
 
             var now = _time.GetUtcNow();
-            if (_lastFailure.TryGetValue(language, out var failedAt) && now - failedAt < RetryBackoff) return MostRecentCached(language);
+            if (!force && _lastFailure.TryGetValue(language, out var failedAt) && now - failedAt < RetryBackoff) return MostRecentCached(language);
 
             try
             {

@@ -39,6 +39,15 @@ public static class NotchFormat
 
     public static string Hm(DateTime t) => t.ToString("HH:mm", CultureInfo.InvariantCulture);
 
+    /// <summary>"Diperbarui 14:05" / "Updated kemarin 21:30"; older than yesterday shows the short date.</summary>
+    public static string Updated(DateTime at, DateTime now)
+    {
+        var when = at.Date == now.Date ? Hm(at)
+            : at.Date == now.Date.AddDays(-1) ? Loc.F("Notch_Yesterday", Hm(at))
+            : $"{at.ToString("d MMM", Loc.Instance.Culture)} {Hm(at)}";
+        return Loc.F("Notch_UpdatedAt", when);
+    }
+
     /// <summary>"Sabtu, 24 Oktober 2026" / "Saturday, October 24, 2026".</summary>
     public static string Gregorian(DateTime d) => d.ToString(Loc.T("Notch_DateFormat"), Loc.Instance.Culture);
 

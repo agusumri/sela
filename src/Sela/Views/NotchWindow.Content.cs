@@ -35,7 +35,7 @@ public partial class NotchWindow
 
     // ---------------- panel height ----------------
 
-    // Panel chrome around the page: grid margin 14 top + 22 bottom, 30 top bar, 16 page margin.
+    // Panel chrome around the page: grid margin 14 top + 22 bottom, 30 top bar (switch; the 25 DIP mark fits inside), 16 page margin.
     private const double PanelChrome = 14 + 30 + 16 + 22;
     private const double PanelContentWidth = PanelWidth - 40;
     private const int PanelResizeMs = 220;
@@ -74,17 +74,20 @@ public partial class NotchWindow
         Island.BeginAnimation(HeightProperty, a);
     }
 
-    private double MeasureActivePage()
+    private double MeasureActivePage() =>
+        MeasurePageBody() + (StatusLine.Visibility == Visibility.Visible ? StatusLineHeight : 0);
+
+    private double MeasurePageBody()
     {
         switch (CurrentTab)
         {
             case Tab.Hadits:
                 return double.PositiveInfinity; // clamps to max
             case Tab.Agenda:
-                if (AgendaContent.Visibility != Visibility.Visible) return 0;
+                if (AgendaContent.Visibility != Visibility.Visible) return MeasureHeight(AgendaEmpty);
                 return MeasureHeight(AgendaHeader) + MeasureHeight(AgendaList);
             default:
-                if (SholatContent.Visibility != Visibility.Visible) return 0;
+                if (SholatContent.Visibility != Visibility.Visible) return MeasureHeight(SholatEmpty);
                 var rows = MeasureHeight(PrayerList);
                 if (rows < 1) rows = _prayerRows.Sum(r => r.IsSecondary ? 28.0 : 36.0); // containers not generated yet
                 return MeasureHeight(SholatHeader) + rows;
@@ -158,6 +161,72 @@ public partial class NotchWindow
             HaditsEmptyTitle.Text = Loc.T("Notch_HadithUnavailable");
             HaditsEmptyBody.Text = Loc.T("Notch_CheckInternet");
         }
+        HaditsRetry.Visibility = State.HadithLoading && !has ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    // ---------------- refresh + offline status ----------------
+
+    // Status line: 16 tall, 10 above it, and the page margin below shrinks by 4 (see XAML).
+    private const double StatusLineHeight = 16 + 10 - 4;
+
+    private bool _spinning;
+
+    /// <summary>While a manual refresh runs: refresh icon turns once a second (dimmed when OS animations are off),
+    /// every refresh / retry button is disabled and the retry pills read "Memuat…".</summary>
+    private void ApplyRefreshing()
+    {
+        var busy = State.Refreshing;
+        RefreshButton.IsEnabled = !busy;
+        foreach (var b in new[] { SholatRetry, AgendaRetry, HaditsRetry })
+        {
+            b.IsEnabled = !busy;
+            b.Content = Loc.T(busy ? "Notch_Loading" : "Notch_Retry");
+        }
+
+        var spin = busy && Motion;
+        RefreshIcon.Opacity = busy && !Motion ? 0.45 : 1;
+        if (spin == _spinning) return;
+        _spinning = spin;
+        if (spin)
+        {
+            var a = new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever };
+            Timeline.SetDesiredFrameRate(a, 24);
+            RefreshSpin.BeginAnimation(RotateTransform.AngleProperty, a);
+        }
+        else
+        {
+            RefreshSpin.BeginAnimation(RotateTransform.AngleProperty, null);
+            RefreshSpin.Angle = 0;
+        }
+    }
+
+    /// <summary>Offline wins; on the Agenda tab a cached list says when it was last updated; otherwise hidden.
+    /// A visibility change re-fits the panel (one-shot resize), so nothing below is pushed into the curve.</summary>
+    private void RefreshStatusLine()
+    {
+        string? glyph = null, text = null;
+        if (!State.IsOnline)
+        {
+            glyph = "\uF384"; // network offline
+            text = Loc.T("Notch_OfflineSaved");
+        }
+        else if (CurrentTab == Tab.Agenda && State.AgendaFromCache && State.AgendaUpdatedAt is { } at)
+        {
+            glyph = "\uE823"; // clock
+            text = NotchFormat.Updated(at, State.Now);
+        }
+
+        var show = text is not null;
+        if (show)
+        {
+            StatusGlyph.Text = glyph;
+            StatusText.Text = text;
+        }
+        var v = show ? Visibility.Visible : Visibility.Collapsed;
+        if (StatusLine.Visibility == v) return;
+        StatusLine.Visibility = v;
+        if (show && Motion && _mode == Mode.Panel) StatusLine.BeginAnimation(OpacityProperty, Anim(1, 200, Soft, from: 0));
+        UpdatePanelHeight();
     }
 
     // ---------------- glance ----------------
@@ -257,6 +326,7 @@ public partial class NotchWindow
         foreach (var p in new[] { SholatPage, AgendaPage, HaditsPage })
             if (!ReferenceEquals(p, show)) p.Visibility = Visibility.Collapsed;
         show.Visibility = Visibility.Visible;
+        RefreshStatusLine(); // the "Diperbarui" line belongs to the Agenda tab only
         UpdatePanelHeight();
 
         var x = SegmentThumb.ActualWidth * (int)tab;

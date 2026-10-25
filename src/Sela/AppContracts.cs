@@ -46,6 +46,24 @@ public sealed class NotchState : INotifyPropertyChanged
     /// <summary>Which enabled habits are done today (for the panel's check-in row). Replace the whole map to notify.</summary>
     public IReadOnlyDictionary<Habit, bool> HabitsDone { get => _habitsDone; set => Set(ref _habitsDone, value); }
 
+    // ---- connectivity + freshness (offline UI and the refresh button) ----
+    private bool _isOnline = true;
+    private bool _refreshing;
+    private DateTime? _agendaUpdatedAt;
+    private bool _agendaFromCache;
+    private bool _agendaFailed;
+    /// <summary>Windows reports a usable network. False → the panel shows an "Offline" hint.</summary>
+    public bool IsOnline { get => _isOnline; set => Set(ref _isOnline, value); }
+    /// <summary>True while a manual refresh (IAppCommands.RefreshNow) is running; the refresh button spins.</summary>
+    public bool Refreshing { get => _refreshing; set => Set(ref _refreshing, value); }
+    /// <summary>When the shown agenda was last fetched successfully (local time); null = never.</summary>
+    public DateTime? AgendaUpdatedAt { get => _agendaUpdatedAt; set => Set(ref _agendaUpdatedAt, value); }
+    /// <summary>True when some meetings shown come from the on-disk cache because a calendar couldn't be reached.</summary>
+    public bool AgendaFromCache { get => _agendaFromCache; set => Set(ref _agendaFromCache, value); }
+    /// <summary>True when the last agenda fetch failed for every configured calendar and nothing is cached
+    /// (so "no meetings today" would be misleading).</summary>
+    public bool AgendaFailed { get => _agendaFailed; set => Set(ref _agendaFailed, value); }
+
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
     {
@@ -61,6 +79,8 @@ public interface IAppCommands
     void OpenSettings();
     /// <summary>Opens a meeting link. The shell only launches https URLs.</summary>
     void OpenJoinUrl(string url);
+    /// <summary>Reloads schedule, agenda and hadith now, bypassing retry backoffs and the calendar refresh interval.
+    /// Sets NotchState.Refreshing while running; safe to call repeatedly.</summary>
     void RefreshNow();
     /// <summary>Stops the adzan if it is playing (e.g. the stop button on the reminder card).</summary>
     void StopAdhan();

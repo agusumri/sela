@@ -10,6 +10,15 @@ public sealed partial class Loc
         ["Notch_TabAgenda"] = ("Agenda", "Agenda"),
         ["Notch_TabHadits"] = ("Hadits", "Hadith"),
         ["Notch_Settings"] = ("Pengaturan", "Settings"),
+        ["Notch_Refresh"] = ("Segarkan", "Refresh"),
+
+        // status line + offline
+        ["Notch_OfflineSaved"] = ("Offline · menampilkan data tersimpan", "Offline · showing saved data"),
+        ["Notch_UpdatedAt"] = ("Diperbarui {0}", "Updated {0}"),
+        ["Notch_Yesterday"] = ("kemarin {0}", "yesterday {0}"),
+        ["Notch_Loading"] = ("Memuat…", "Loading…"),
+        ["Notch_AgendaFailed"] = ("Agenda belum bisa dimuat", "Couldn't load your agenda"),
+        ["Notch_AgendaFailedHint"] = ("Periksa internet atau Outlook, lalu coba lagi", "Check your internet or Outlook, then try again"),
 
         // glance
         ["Notch_NextPrayer"] = ("Sholat berikutnya", "Next prayer"),

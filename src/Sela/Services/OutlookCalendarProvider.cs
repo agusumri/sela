@@ -11,7 +11,7 @@ namespace Sela.Services;
 /// dedicated STA thread; a call is awaited for at most 20 s, and while a previous call is still stuck no new
 /// thread is started (the last good result is returned). Never throws for "unavailable": returns empty.
 /// </summary>
-public sealed class OutlookCalendarProvider : ICalendarProvider
+public sealed class OutlookCalendarProvider : IRefreshableCalendarProvider
 {
     public static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(20);
     private const int OlFolderCalendar = 9;
@@ -29,18 +29,29 @@ public sealed class OutlookCalendarProvider : ICalendarProvider
 
     private readonly Func<int> _defaultReminderMinutes;
     private readonly Action<string>? _log;
+    private readonly bool _forceUnavailable;
+    private volatile bool _lastFetchFailed;
 
-    public OutlookCalendarProvider(Func<int> defaultReminderMinutes, Action<string>? log = null)
+    /// <param name="forceUnavailable">Debug (--offline): behave as if Outlook were not running.</param>
+    public OutlookCalendarProvider(Func<int> defaultReminderMinutes, Action<string>? log = null, bool forceUnavailable = false)
     {
         _defaultReminderMinutes = defaultReminderMinutes ?? throw new ArgumentNullException(nameof(defaultReminderMinutes));
         _log = log;
+        _forceUnavailable = forceUnavailable;
     }
 
     public CalendarSource Source => CalendarSource.Outlook;
 
+    /// <summary>True when Outlook isn't running, the COM call failed, timed out or is still stuck.</summary>
+    public bool LastFetchFailed => _lastFetchFailed;
+
+    /// <summary>No-op: Outlook is read live on every call.</summary>
+    public void RequestFreshFetch() { }
+
     public async Task<IReadOnlyList<CalendarEvent>> GetEventsAsync(DateTime from, DateTime to, CancellationToken ct)
     {
-        if (!IsOutlookRunning())
+        _lastFetchFailed = true; // until a read completes
+        if (_forceUnavailable || !IsOutlookRunning())
         {
             lock (Gate) s_lastResult = Array.Empty<CalendarEvent>();
             return Array.Empty<CalendarEvent>();
@@ -66,7 +77,13 @@ public sealed class OutlookCalendarProvider : ICalendarProvider
 
         try
         {
-            return await call.WaitAsync(CallTimeout, ct).ConfigureAwait(false);
+            var events = await call.WaitAsync(CallTimeout, ct).ConfigureAwait(false);
+            _lastFetchFailed = false;
+            return events;
+        }
+        catch (OutlookUnavailableException)
+        {
+            return Array.Empty<CalendarEvent>(); // process found but not attachable (starting up / closing)
         }
         catch (TimeoutException)
         {
@@ -112,7 +129,7 @@ public sealed class OutlookCalendarProvider : ICalendarProvider
     private IReadOnlyList<CalendarEvent> Read(DateTime from, DateTime to, int defaultReminder)
     {
         object? app = TryGetRunningOutlook();
-        if (app is null) return Array.Empty<CalendarEvent>();
+        if (app is null) throw new OutlookUnavailableException();
 
         dynamic? ns = null, folder = null, items = null, restricted = null;
         var result = new List<CalendarEvent>();
@@ -214,6 +231,8 @@ public sealed class OutlookCalendarProvider : ICalendarProvider
         }
         catch (Exception) { }
     }
+
+    private sealed class OutlookUnavailableException : Exception;
 
     [DllImport("ole32.dll", PreserveSig = false)]
     private static extern void CLSIDFromProgID([MarshalAs(UnmanagedType.LPWStr)] string progId, out Guid clsid);

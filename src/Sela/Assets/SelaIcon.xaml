@@ -86,6 +86,45 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
+    <!-- SelaMarkOnBlack: the SelaLogo glow, crescent and sensor dot only (same geometry and spacing),
+         without the tile and the black pill, for black surfaces like the notch panel.
+         Bounds hug the content (glow 68..160 x 88..168, dot to x 185), so it scales to the mark, not the 256 canvas. -->
+    <DrawingImage x:Key="SelaMarkOnBlack">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M68,88 H186 V168 H68 Z" />
+                <GeometryDrawing>
+                    <GeometryDrawing.Brush>
+                        <RadialGradientBrush>
+                            <GradientStop Color="#553DDC97" Offset="0" />
+                            <GradientStop Color="#003DDC97" Offset="1" />
+                        </RadialGradientBrush>
+                    </GeometryDrawing.Brush>
+                    <GeometryDrawing.Geometry>
+                        <EllipseGeometry Center="114,128" RadiusX="46" RadiusY="40" />
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="{StaticResource SelaLogo.Moon}">
+                    <GeometryDrawing.Geometry>
+                        <CombinedGeometry GeometryCombineMode="Exclude">
+                            <CombinedGeometry.Geometry1>
+                                <EllipseGeometry Center="114,128" RadiusX="31" RadiusY="31" />
+                            </CombinedGeometry.Geometry1>
+                            <CombinedGeometry.Geometry2>
+                                <EllipseGeometry Center="127,118" RadiusX="25" RadiusY="25" />
+                            </CombinedGeometry.Geometry2>
+                        </CombinedGeometry>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#3DDC97">
+                    <GeometryDrawing.Geometry>
+                        <EllipseGeometry Center="176,128" RadiusX="9" RadiusY="9" />
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
     <DrawingImage x:Key="SelaLogoSmall">
         <DrawingImage.Drawing>
             <DrawingGroup>
