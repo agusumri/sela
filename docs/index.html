@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sela · A short pause between everything else</title>
+  <meta name="description" content="Sela is a small black notch at the top of your Windows screen for prayer times, the adhan, daily dhikr and hadith reminders, and your Outlook and Google Calendar meetings. Free and open source.">
+  <link rel="canonical" href="https://agusumri.github.io/sela/">
+  <meta name="theme-color" content="#0E1116">
+  <meta name="color-scheme" content="dark">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Sela">
+  <meta property="og:title" content="Sela · A short pause between everything else">
+  <meta property="og:description" content="A small notch at the top of your Windows screen for prayer times, the adhan, daily reminders, and meetings.">
+  <meta property="og:url" content="https://agusumri.github.io/sela/">
+  <meta property="og:image" content="https://agusumri.github.io/sela/brand/social/github-social-preview.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta property="og:image:alt" content="Sela logo and tagline on a dark background">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="id_ID">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Sela · A short pause between everything else">
+  <meta name="twitter:description" content="A small notch at the top of your Windows screen for prayer times, the adhan, daily reminders, and meetings.">
+  <meta name="twitter:image" content="https://agusumri.github.io/sela/brand/social/github-social-preview.png">
+
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/img/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/css/site.css">
+  <script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+  <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="#top" aria-label="Sela, back to top">
+        <img src="assets/img/sela-mark-256.png" alt="" width="40" height="40">
+        <span>Sela</span>
+      </a>
+      <nav class="nav" aria-label="Sections" data-i18n-aria="navLabel">
+        <a href="#features" data-i18n="navFeatures">Features</a>
+        <a href="#mascot" data-i18n="navMascot">Mascot</a>
+        <a href="#privacy" data-i18n="navPrivacy">Privacy</a>
+        <a href="#download" data-i18n="navDownload">Download</a>
+      </nav>
+      <div class="lang" role="group" aria-label="Language" data-i18n-aria="langLabel">
+        <button type="button" data-lang="en" aria-pressed="true" lang="en"><span aria-hidden="true">EN</span><span class="sr">English</span></button>
+        <button type="button" data-lang="id" aria-pressed="false" lang="id"><span aria-hidden="true">ID</span><span class="sr">Bahasa Indonesia</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="wrap hero-copy">
+        <p class="eyebrow reveal" data-i18n="heroEyebrow">Free and open source · for Windows</p>
+        <h1 id="hero-title" class="reveal" data-i18n="heroTitle">A short pause between everything&nbsp;else.</h1>
+        <p class="lede reveal" data-i18n="heroLede">A small black notch at the top of your Windows screen for prayer times, the adhan, daily dhikr and hadith reminders, and your meetings.</p>
+        <div class="cta reveal">
+          <a class="btn btn-primary" href="https://github.com/agusumri/sela/releases/latest" data-dl>
+            <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="M10 3v9m0 0 -3.5-3.5M10 12l3.5-3.5M4 15.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span data-i18n="ctaDownload">Download for Windows</span>
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/agusumri/sela" data-i18n="ctaGithub">View on GitHub</a>
+        </div>
+        <p class="fine reveal"><span data-dl-meta></span><span data-i18n="heroReq">Windows 10 and 11 (64-bit) · No .NET install needed</span></p>
+      </div>
+
+      <div class="wrap">
+        <figure class="screen reveal" aria-labelledby="screen-cap">
+          <div class="screen-sky" aria-hidden="true">
+            <span class="sky sky-dawn"></span><span class="sky sky-day"></span><span class="sky sky-dusk"></span><span class="sky sky-night"></span>
+          </div>
+          <div class="screen-panel">
+            <img src="assets/img/en/panel-prayer.png" data-src="panel-prayer.png" width="600" height="660" fetchpriority="high"
+                 alt="The Sela notch opened at the top of the screen: the London prayer schedule with a timeline and the next prayer highlighted in green"
+                 data-i18n-alt="altHero">
+          </div>
+          <div class="taskbar" aria-hidden="true"><i></i><i></i><i class="on"></i><i></i><i></i></div>
+          <figcaption id="screen-cap" class="screen-cap" data-i18n="heroCaption">The notch, opened. Sample data for London.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section" id="features" aria-labelledby="glance-title">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <p class="eyebrow" data-i18n="glanceEyebrow">One glance</p>
+          <h2 id="glance-title" data-i18n="glanceTitle">Hover for a summary. Click for your whole day.</h2>
+          <p data-i18n="glanceLede">Sela sits at the top of your screen as a small black pill. It shows the next prayer and a live countdown, with a crescent mascot that changes with the time of day.</p>
+        </div>
+
+        <ol class="steps reveal">
+          <li><b data-i18n="stepHoverT">Hover</b><span data-i18n="stepHover">over the pill to see the next prayer and your next meeting.</span></li>
+          <li><b data-i18n="stepClickT">Click</b><span data-i18n="stepClick">to open the Prayer, Agenda, and Hadith tabs. Press Esc or move the pointer away to close it.</span></li>
+          <li><b data-i18n="stepDragT">Drag</b><span data-i18n="stepDrag">it left or right, or to the bottom edge of the screen. Sela remembers the spot.</span></li>
+        </ol>
+
+        <div class="panels">
+          <figure class="panel-card reveal">
+            <img src="assets/img/en/panel-prayer.png" data-src="panel-prayer.png" width="600" height="660" loading="lazy"
+                 alt="Prayer tab: London schedule with a timeline and the next prayer highlighted in green" data-i18n-alt="altPrayer">
+            <figcaption>
+              <b data-i18n="panelPrayerT">Prayer times anywhere</b>
+              <span data-i18n="panelPrayer">Indonesian cities use official Kemenag RI times. Every other city uses Aladhan with the calculation method of your choice.</span>
+            </figcaption>
+          </figure>
+          <figure class="panel-card reveal">
+            <img src="assets/img/en/panel-agenda.png" data-src="panel-agenda.png" width="600" height="660" loading="lazy"
+                 alt="Agenda tab: meeting cards marked Outlook or Google, with Join buttons" data-i18n-alt="altAgenda">
+            <figcaption>
+              <b data-i18n="panelAgendaT">Today's agenda</b>
+              <span data-i18n="panelAgenda">Meetings from Outlook and Google Calendar, each marked with its source, with a Join button for Teams, Zoom, Google Meet, and Webex.</span>
+            </figcaption>
+          </figure>
+          <figure class="panel-card reveal">
+            <img src="assets/img/en/panel-hadith.png" data-src="panel-hadith.png" width="600" height="660" loading="lazy"
+                 alt="Hadith tab: Forty Hadith of an-Nawawi in Arabic with an English translation and today's worship check-ins" data-i18n-alt="altHadith">
+            <figcaption>
+              <b data-i18n="panelHadithT">A daily hadith</b>
+              <span data-i18n="panelHadith">From the Forty Hadith of an-Nawawi, in Arabic with an English or Indonesian translation.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reminders -->
+    <section class="section reminders" aria-labelledby="rem-title">
+      <div class="wrap split">
+        <div class="split-copy reveal">
+          <p class="eyebrow" data-i18n="remEyebrow">Reminders</p>
+          <h2 id="rem-title" data-i18n="remTitle">It speaks up only when it matters.</h2>
+          <dl class="defs">
+            <div><dt data-i18n="remPrayerT">Prayer reminders</dt><dd data-i18n="remPrayer">A few minutes before each prayer and when it begins, with a countdown in hours, minutes, and seconds.</dd></div>
+            <div><dt data-i18n="remAdhanT">Adhan</dt><dd data-i18n="remAdhan">Plays when a prayer begins. Stop it from the card, or mute it for a while from the tray menu.</dd></div>
+            <div><dt data-i18n="remHabitT">Dhikr and salawat check-ins</dt><dd data-i18n="remHabit">Sela asks once after Fajr, Dhuhr, and Asr. Answer Done or Later.</dd></div>
+          </dl>
+        </div>
+        <div class="cards-stack">
+          <img class="reveal" src="assets/img/en/reminder-adhan.png" data-src="reminder-adhan.png" width="654" height="180" loading="lazy"
+               alt="Prayer time card with a Stop button for the adhan" data-i18n-alt="altRemAdhan">
+          <img class="reveal" src="assets/img/en/reminder-habit.png" data-src="reminder-habit.png" width="654" height="180" loading="lazy"
+               alt="Check-in card asking about salawat, with Done and Later buttons" data-i18n-alt="altRemHabit">
+          <img class="reveal" src="assets/img/en/reminder-hadith.png" data-src="reminder-hadith.png" width="654" height="180" loading="lazy"
+               alt="Daily hadith card with a short preview and a Read button" data-i18n-alt="altRemHadith">
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature grid -->
+    <section class="section" aria-labelledby="grid-title">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <p class="eyebrow" data-i18n="gridEyebrow">Features</p>
+          <h2 id="grid-title" data-i18n="gridTitle">Small pill, full day.</h2>
+        </div>
+        <ul class="grid">
+          <li class="reveal"><h3 data-i18n="fPrayerT">Prayer times anywhere</h3><p data-i18n="fPrayer">Kemenag RI times for Indonesian cities. Aladhan everywhere else, with methods such as Muslim World League, ISNA, or Umm al-Qura, and an optional Hanafi Asr.</p></li>
+          <li class="reveal"><h3 data-i18n="fRemT">Prayer reminders</h3><p data-i18n="fRem">A few minutes before each prayer and when it begins, with a countdown in hours, minutes, and seconds.</p></li>
+          <li class="reveal"><h3 data-i18n="fAdhanT">Adhan</h3><p data-i18n="fAdhan">Per-prayer choices, volume, mute, and your own audio files, including a separate one for Fajr.</p></li>
+          <li class="reveal"><h3 data-i18n="fHabitT">Dhikr and salawat</h3><p data-i18n="fHabit">A gentle check-in after Fajr, Dhuhr, and Asr. Answer Done or Later.</p></li>
+          <li class="reveal"><h3 data-i18n="fHadithT">Daily hadith</h3><p data-i18n="fHadith">The Forty Hadith of an-Nawawi, in Arabic with an English or Indonesian translation.</p></li>
+          <li class="reveal"><h3 class="blue" data-i18n="fMeetT">Meetings</h3><p data-i18n="fMeet">Outlook (classic desktop app) and Google Calendar, each marked with its source, with a Join button for Teams, Zoom, Google Meet, and Webex.</p></li>
+          <li class="reveal"><h3 data-i18n="fLangT">English and Indonesian</h3><p data-i18n="fLang">Follows your Windows language by default. Switch at any time in Settings.</p></li>
+          <li class="reveal"><h3 data-i18n="fPlaceT">Place it where you like</h3><p data-i18n="fPlace">Drag the notch along the top or bottom edge of the screen. Sela remembers the spot.</p></li>
+          <li class="reveal"><h3 data-i18n="fOpenT">Free and open source</h3><p data-i18n="fOpen">Released under the MIT license. You're free to use, change, and share it.</p></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Mascot -->
+    <section class="section mascot" id="mascot" aria-labelledby="mascot-title">
+      <div class="wrap split split-rev">
+        <div class="split-copy reveal">
+          <p class="eyebrow" data-i18n="mascotEyebrow">The idle notch</p>
+          <h2 id="mascot-title" data-i18n="mascotTitle">A small crescent that keeps time with the sky.</h2>
+          <p data-i18n="mascotLede">Dawn, day, dusk, and night each have their own look. The mascot moves slowly and glances toward your cursor, while the next prayer counts down beside it.</p>
+        </div>
+        <div class="sky-stage reveal">
+          <div class="cycler" aria-hidden="true">
+            <img src="assets/img/en/idle-dawn.png" data-src="idle-dawn.png" width="438" height="87" loading="lazy" alt="">
+            <img src="assets/img/en/idle-day.png" data-src="idle-day.png" width="438" height="87" loading="lazy" alt="">
+            <img src="assets/img/en/idle-dusk.png" data-src="idle-dusk.png" width="438" height="87" loading="lazy" alt="">
+            <img src="assets/img/en/idle-night.png" data-src="idle-night.png" width="438" height="87" loading="lazy" alt="">
+          </div>
+        <ul class="skies" aria-label="The notch through the day" data-i18n-aria="skiesLabel">
+          <li class="reveal"><img src="assets/img/en/idle-dawn.png" data-src="idle-dawn.png" width="438" height="87" loading="lazy" alt="Dawn: lavender crescent, next prayer and a countdown with seconds" data-i18n-alt="altDawn"><span data-i18n="skyDawn">Dawn</span></li>
+          <li class="reveal"><img src="assets/img/en/idle-day.png" data-src="idle-day.png" width="438" height="87" loading="lazy" alt="Day: small sun with rays, next prayer and countdown" data-i18n-alt="altDay"><span data-i18n="skyDay">Day</span></li>
+          <li class="reveal"><img src="assets/img/en/idle-dusk.png" data-src="idle-dusk.png" width="438" height="87" loading="lazy" alt="Dusk: amber crescent, next prayer and countdown" data-i18n-alt="altDusk"><span data-i18n="skyDusk">Dusk</span></li>
+          <li class="reveal"><img src="assets/img/en/idle-night.png" data-src="idle-night.png" width="438" height="87" loading="lazy" alt="Night: crescent with stars, next prayer and countdown" data-i18n-alt="altNight"><span data-i18n="skyNight">Night</span></li>
+        </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video -->
+    <section class="section motion" aria-labelledby="motion-title">
+      <div class="wrap split">
+        <div class="split-copy reveal">
+          <p class="eyebrow" data-i18n="motionEyebrow">20 seconds</p>
+          <h2 id="motion-title" data-i18n="motionTitle">See it in motion.</h2>
+          <p data-i18n="motionLede">The notch, the prayer panel, your meetings, the adhan, and a daily hadith, in one short clip.</p>
+          <p class="fine" data-i18n="motionNote">The video plays without sound. Turn the sound on in the player controls.</p>
+        </div>
+        <div class="phone reveal">
+          <video id="brag" src="media/brag-en.mp4" poster="media/brag-en.jpg" width="1080" height="1920"
+                 muted loop playsinline preload="metadata" controls
+                 aria-label="Sela launch video: the notch, the prayer panel, meetings, the adhan and a daily hadith"
+                 data-i18n-aria="videoLabel"></video>
+        </div>
+      </div>
+    </section>
+
+    <!-- Light on your PC + privacy -->
+    <section class="section light" id="privacy" aria-labelledby="light-title">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <p class="eyebrow" data-i18n="lightEyebrow">Light on your PC</p>
+          <h2 id="light-title" data-i18n="lightTitle">No window to manage. It just sits at the edge.</h2>
+        </div>
+
+        <div class="light-grid">
+          <div class="desk reveal" aria-hidden="true">
+            <div class="desk-screen">
+              <span class="pill pill-now"><i></i></span>
+              <span class="pill ghost g-left"></span>
+              <span class="pill ghost g-right"></span>
+              <span class="pill ghost g-bottom"></span>
+              <span class="fs" data-i18n="deskFs">Full-screen app? The notch steps aside.</span>
+            </div>
+          </div>
+
+          <ul class="light-list">
+            <li class="reveal"><h3 data-i18n="lOutT">Stays out of the way</h3><p data-i18n="lOut">Hides during full-screen apps, never takes focus, and has no taskbar button.</p></li>
+            <li class="reveal"><h3 data-i18n="lOffT">Works offline</h3><p data-i18n="lOff">Schedules and hadith are cached on your PC. Click Refresh whenever you want fresh data.</p></li>
+            <li class="reveal"><h3 data-i18n="lInstT">Easy to install</h3><p data-i18n="lInst">Windows 10 or 11 (64-bit), with no .NET install needed. The installer sets Sela up for your account only, without admin rights.</p></li>
+          </ul>
+        </div>
+
+        <div class="privacy reveal">
+          <div>
+            <h3 data-i18n="privT">No server. Your data stays on your PC.</h3>
+            <p data-i18n="priv">Sela has no server and doesn't send your personal data anywhere. It only connects to:</p>
+          </div>
+          <ul class="hosts">
+            <li><code>api.myquran.com</code><span data-i18n="h1">Indonesian prayer times and the Indonesian hadith</span></li>
+            <li><code>api.aladhan.com</code><span data-i18n="h2">prayer times outside Indonesia, using the coordinates of the city you picked</span></li>
+            <li><code>geocoding-api.open-meteo.com</code><span data-i18n="h3">the city search</span></li>
+            <li><code>cdn.jsdelivr.net</code><span data-i18n="h4">the English hadith</span></li>
+            <li><code data-i18n="h5c">your iCal address</code><span data-i18n="h5">the Google Calendar address you enter, stored encrypted with Windows DPAPI</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="section settings" aria-labelledby="set-title">
+      <div class="wrap split">
+        <div class="split-copy reveal">
+          <p class="eyebrow" data-i18n="setEyebrow">Settings</p>
+          <h2 id="set-title" data-i18n="setTitle">Make it yours.</h2>
+          <dl class="defs">
+            <div><dt data-i18n="sLangT">Language</dt><dd data-i18n="sLang">Keep Follow Windows, or pick English or Indonesia.</dd></div>
+            <div><dt data-i18n="sLocT">Location and method</dt><dd data-i18n="sLoc">Type your city and pick it from the list. Outside Indonesia, choose the calculation method your local mosque uses, and turn on the Hanafi Asr if you follow it.</dd></div>
+            <div><dt data-i18n="sAdhanT">Adhan</dt><dd data-i18n="sAdhan">Choose it per prayer, set the volume, or use your own audio files, including a separate one for Fajr.</dd></div>
+            <div><dt data-i18n="sMeetT">Meetings</dt><dd data-i18n="sMeet">Turn on Outlook (classic app), or paste the secret iCal address of your Google Calendar.</dd></div>
+          </dl>
+        </div>
+        <figure class="settings-shot reveal">
+          <img src="assets/img/en/settings.png" data-src="settings.png" width="900" height="1080" loading="lazy"
+               alt="Settings window in English with Language, Location and Prayer sections" data-i18n-alt="altSettings">
+        </figure>
+      </div>
+    </section>
+
+    <!-- Download -->
+    <section class="section download" id="download" aria-labelledby="dl-title">
+      <div class="wrap">
+        <div class="dl-card reveal">
+          <img class="dl-mark" src="assets/img/sela-mark-256.png" alt="" width="128" height="128" loading="lazy">
+          <h2 id="dl-title" data-i18n="dlTitle">Take a short pause today.</h2>
+          <p class="lede" data-i18n="dlLede">Free and open source. Windows 10 or 11 (64-bit). You don't need to install .NET.</p>
+          <div class="cta">
+            <a class="btn btn-primary" href="https://github.com/agusumri/sela/releases/latest" data-dl>
+              <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="M10 3v9m0 0 -3.5-3.5M10 12l3.5-3.5M4 15.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span data-i18n="dlInstaller">Download the installer</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/agusumri/sela/releases/latest" data-dl-portable data-i18n="dlAll">All release files</a>
+          </div>
+          <p class="fine" data-dl-meta></p>
+          <div class="dl-opts">
+            <p><b data-i18n="dlInstT">Installer</b> <span data-i18n="dlInst">Installs Sela for your account only, without admin rights, and adds it to the Start menu.</span></p>
+            <p><b data-i18n="dlPortT">Portable</b> <span data-i18n="dlPort">A single file you run directly, without installing.</span></p>
+          </div>
+          <p class="note" data-i18n="dlNote">Release files aren't digitally signed yet, so Windows SmartScreen might show a warning. Click <b>More info</b>, then <b>Run anyway</b>. You can check the files against <code>SHA256SUMS.txt</code> on the release page.</p>
+          <p class="fine" data-i18n="dlAfter">After you run it, the Sela icon appears in the notification area and the notch appears at the top of the screen.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-row">
+      <div class="footer-brand">
+        <img src="assets/img/sela-mark-256.png" alt="" width="36" height="36" loading="lazy">
+        <div>
+          <b>Sela</b>
+          <span data-i18n="footTag">A short pause between everything else.</span>
+        </div>
+      </div>
+      <nav aria-label="Project links" data-i18n-aria="footNav">
+        <ul class="footer-links">
+          <li><a href="https://github.com/agusumri/sela">GitHub</a></li>
+          <li><a href="https://github.com/agusumri/sela/issues/13" data-i18n="footRoadmap">Roadmap</a></li>
+          <li><a href="https://github.com/agusumri/sela/blob/main/LICENSE" data-i18n="footLicense">MIT license</a></li>
+          <li><a href="https://github.com/agusumri/sela/tree/main/docs/brand" data-i18n="footBrand">Brand kit</a></li>
+          <li><a href="https://github.com/agusumri/sela#privacy" data-href-id="https://github.com/agusumri/sela/blob/main/README.id.md#privasi" data-i18n="footPrivacy">Privacy</a></li>
+        </ul>
+      </nav>
+      <p class="credits" data-i18n="footCredits">Prayer times from Kemenag RI through api.myquran.com, and from Aladhan. Screenshots use sample data.</p>
+    </div>
+  </footer>
+
+  <script src="assets/js/site.js"></script>
+</body>
+</html>
