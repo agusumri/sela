@@ -1,0 +1,59 @@
+name: Bug report
+description: Something isn't working / Ada yang tidak berjalan
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please don't paste your Google Calendar iCal address, meeting titles, or anything private.
+        Jangan tempel alamat iCal Google, judul meeting, atau data pribadi lainnya.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / Apa yang terjadi?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect? / Seharusnya bagaimana?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Langkah untuk mengulang
+      placeholder: |
+        1. Open Settings
+        2. ...
+  - type: input
+    id: version
+    attributes:
+      label: Sela version / Versi Sela
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installed with / Dipasang dengan
+      options:
+        - Installer (Sela-Setup)
+        - Portable exe
+        - Built from source
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version / Versi Windows
+      placeholder: "Windows 11 24H2"
+  - type: input
+    id: city
+    attributes:
+      label: City and language / Kota dan bahasa
+      placeholder: "Jakarta, Indonesia"
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional) / Log (opsional)
+      description: The last lines of %LOCALAPPDATA%\Sela\log.txt. Remove anything private before pasting.
+      render: text

@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest an idea for Sela / Usulkan fitur untuk Sela
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Check the pinned **Roadmap** issue first — it may already be planned.
+        Terima kasih atas idenya. Cek dulu issue **Roadmap** yang di-pin, mungkin sudah direncanakan.
+  - type: textarea
+    id: situation
+    attributes:
+      label: When does this come up? / Kapan kamu butuh ini?
+      description: Describe the moment, for example "a meeting runs through Dhuhr and I notice too late".
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help? / Apa yang akan membantu?
+      description: What Sela could do. Rough is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What do you do today instead? / Sekarang kamu pakai cara apa?
+      description: An app, an alarm, a note, or nothing.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Prayer times and adhan / Jadwal sholat dan adzan
+        - Meetings and calendar / Meeting dan kalender
+        - Daily worship (dhikr, hadith, Quran) / Ibadah harian
+        - Ramadan
+        - The notch and its look / Notch dan tampilannya
+        - Other / Lainnya
