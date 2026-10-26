@@ -83,6 +83,7 @@ public partial class App : Application, IAppCommands
         Log.Write($"Sela start ({string.Join(' ', e.Args)})");
         _mock = e.Args.Contains("--mock", StringComparer.OrdinalIgnoreCase);
         _offline = e.Args.Contains("--offline", StringComparer.OrdinalIgnoreCase);
+        s_agendaIncludeTomorrow = e.Args.Contains("--agenda-tomorrow", StringComparer.OrdinalIgnoreCase);
         _langOverride = ParseLanguageArg(e.Args);
         Loc.MissingKeyLog = Log.Write;
 
@@ -166,6 +167,13 @@ public partial class App : Application, IAppCommands
         if (e.Args.Contains("--test-habit", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestHabit);
         if (e.Args.Contains("--test-hadith", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestHadith);
         if (e.Args.Contains("--test-dhikr", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestDhikr);
+        // --test-soon: the "N minutes until Ashar" card as it looks with the dhikr setting off
+        if (e.Args.Contains("--test-soon", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(() =>
+        {
+            var now = DateTime.Now;
+            _notch.ShowReminder(new Reminder($"test-soon|{Guid.NewGuid():N}", ReminderKind.PrayerSoon, Loc.F("Shell_DemoSoonTitle", AsharName),
+                Loc.F("Shell_DemoSoonBody", AsharName), now.AddMinutes(10).ToString("HH:mm"), null, now, Prayer.Ashar));
+        });
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -725,9 +733,12 @@ public partial class App : Application, IAppCommands
         }
     }
 
+    /// <summary>Testing aid (--agenda-tomorrow): the panel also lists tomorrow's real events (fetched up to end of tomorrow anyway).</summary>
+    private static bool s_agendaIncludeTomorrow;
+
     private static List<CalendarEvent> TodayRemaining(IEnumerable<CalendarEvent> events, DateTime now)
     {
-        var endOfToday = now.Date.AddDays(1);
+        var endOfToday = now.Date.AddDays(s_agendaIncludeTomorrow ? 2 : 1);
         return events.Where(e => e.End > now && e.Start < endOfToday).ToList();
     }
 
@@ -831,7 +842,7 @@ public partial class App : Application, IAppCommands
         DhikrLibrary.For(DhikrLibrary.Pick(DateOnly.FromDateTime(now), Prayer.Ashar), Loc.Instance.Language);
 
     /// <summary>
-    /// --test-dhikr: the "N minutes until Ashar" card once for each dhikr (istighfar, tahmid, tahlil), queued one
+    /// --test-dhikr: the "N minutes until Ashar" card once for each dhikr and shalawat (all DhikrKind values), queued one
     /// after another. Add --hold to keep each card up until it's clicked.
     /// </summary>
     private void TestDhikr()

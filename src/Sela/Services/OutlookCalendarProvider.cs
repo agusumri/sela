@@ -42,7 +42,10 @@ public sealed class OutlookCalendarProvider : IRefreshableCalendarProvider
 
     public CalendarSource Source => CalendarSource.Outlook;
 
-    /// <summary>True when Outlook isn't running, the COM call failed, timed out or is still stuck.</summary>
+    /// <summary>
+    /// True when the COM call failed, timed out or is still stuck. Outlook simply not running is not a failure:
+    /// there is no data, so the agenda says "no events" instead of "check your connection".
+    /// </summary>
     public bool LastFetchFailed => _lastFetchFailed;
 
     /// <summary>No-op: Outlook is read live on every call.</summary>
@@ -51,9 +54,11 @@ public sealed class OutlookCalendarProvider : IRefreshableCalendarProvider
     public async Task<IReadOnlyList<CalendarEvent>> GetEventsAsync(DateTime from, DateTime to, CancellationToken ct)
     {
         _lastFetchFailed = true; // until a read completes
-        if (_forceUnavailable || !IsOutlookRunning())
+        if (_forceUnavailable) return Array.Empty<CalendarEvent>(); // --offline: shows the failed state
+        if (!IsOutlookRunning())
         {
             lock (Gate) s_lastResult = Array.Empty<CalendarEvent>();
+            _lastFetchFailed = false; // nothing to read is "no data", not an error
             return Array.Empty<CalendarEvent>();
         }
 
