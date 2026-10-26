@@ -32,9 +32,7 @@ public partial class NotchWindow : Window, INotchHost
     private const double PanelWidth = 344;
     private const double PanelMinHeight = 260;
     private const double PanelMaxHeight = 412; // fits 720 DIP screens with room to spare
-    private static readonly Size ReminderSize = new(380, 92);
-    /// <summary>PrayerSoon with a dhikr: 12 taller for the Arabic + "Latin · meaning" lines.</summary>
-    private static readonly Size ReminderDhikrSize = new(380, 104);
+    private static readonly Size ReminderSize = new(380, 92); // dhikr cards are fitted to their text (NotchWindow.Content.cs)
     private const double StageSize = 420;
     private const double MaxCorner = 26;
     private const double PanelCorner = 30;
@@ -410,6 +408,7 @@ public partial class NotchWindow : Window, INotchHost
         _leaveGrace.Stop();
 
         var (accent, glyph, seconds) = ReminderLook(r);
+        if (HasDhikr(r)) seconds = 20; // four things to read, not one
         if (HoldReminders) seconds = 24 * 3600; // effectively never; a click still dismisses
         var accentBrush = Frozen(accent);
         ReminderIconBg.Fill = Frozen(accent, 0.16);
@@ -448,7 +447,7 @@ public partial class NotchWindow : Window, INotchHost
 
     private void AutomationProperties_SetName(Reminder r) =>
         System.Windows.Automation.AutomationProperties.SetName(ReminderLayer,
-            HasDhikr(r) ? $"{r.Title}. {r.Body}. {r.Dhikr!.Latin}: {r.Dhikr.Meaning}" : $"{r.Title}. {r.Body}");
+            HasDhikr(r) ? $"{r.Title}. {DhikrInvite(r)}. {r.Dhikr!.Latin}: {r.Dhikr.Meaning}" : $"{r.Title}. {r.Body}");
 
     private void DismissReminder()
     {
@@ -701,7 +700,7 @@ public partial class NotchWindow : Window, INotchHost
     {
         Mode.Glance => State.AdhanPlaying ? GlanceAdhanSize : GlanceSize,
         Mode.Panel => new Size(PanelWidth, _panelHeight),
-        Mode.Reminder => HasDhikr(_reminder) ? ReminderDhikrSize : ReminderSize,
+        Mode.Reminder => _reminderSize,
         _ => IdleSize,
     };
 

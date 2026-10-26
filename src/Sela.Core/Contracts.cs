@@ -90,14 +90,22 @@ public sealed record Reminder(
     CalendarSource? Source = null, // set for Meeting reminders: shown as an Outlook / Google badge
     Dhikr? Dhikr = null);    // set on PrayerSoon when SelaSettings.PrayerDhikr: one short dhikr shown on the card
 
-/// <summary>A short dhikr shown on the "N minutes until prayer" card (istighfar, tahmid, tahlil).</summary>
+/// <summary>A short dhikr or shalawat shown on the "N minutes until prayer" card.</summary>
 public sealed record Dhikr(
     DhikrKind Kind,
     string Arabic,           // with harakat, shown right-to-left
     string Latin,            // transliteration, e.g. "Astaghfirullah"
     string Meaning);         // in the reminder's language
 
-public enum DhikrKind { Istighfar, Tahmid, Tahlil }
+/// <summary>Rotation order. Keep the count off a multiple of five so each prayer cycles through every kind.</summary>
+public enum DhikrKind
+{
+    Istighfar, Tahmid, Tahlil, Takbir, Shalawat, Tasbih, Hauqalah, ShalawatNabi,
+    TasbihBihamdih, Hasbalah, TasbihAzhim, ShalawatSayyidina, BaqiyatShalihat,
+}
+
+/// <summary>The invitation line on a dhikr card; several kinds share one.</summary>
+public enum DhikrInvite { Istighfar, Tasbih, Tahmid, Tahlil, Takbir, Shalawat, Dzikir }
 
 /// <summary>
 /// One hadith for the daily card (Arbain Nawawi, 42 hadith). Indonesian text comes from api.myquran.com,

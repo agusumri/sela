@@ -314,22 +314,100 @@ public partial class NotchWindow
     /// <summary>Only the "N minutes until prayer" card carries a dhikr; any other kind keeps its normal layout.</summary>
     private static bool HasDhikr(Reminder? r) => r is { Kind: ReminderKind.PrayerSoon, Dhikr: not null };
 
+    // Dhikr card layout (DIP): 12 top margin + 40 context row + 8 = block top; block; 14 gap; 3 bar + 10 below it.
+    private const double DhikrBlockBottom = 14 + 3 + 10;
+    private const double DhikrSidePadding = 20 + 18;   // ReminderDhikr margin left + right
+    private const double DhikrMaxWidth = 400;
+    private static readonly Brush ContextBrush = FrozenHex(0xB8, 0xB8, 0xBF);
+
+    /// <summary>Size of the reminder card on screen: 380x92, or the dhikr card fitted to its text.</summary>
+    private Size _reminderSize = ReminderSize;
+
+    /// <summary>"Sambil menunggu Ashar, yuk istighfar" / "While you wait for Asr, let's seek forgiveness".</summary>
+    private static string DhikrInvite(Reminder r)
+    {
+        var prayer = r.Prayer is { } p ? NotchFormat.PrayerName(p) : Loc.T("Notch_TabSholat");
+        return Loc.F($"Notch_DhikrInvite_{DhikrLibrary.InviteOf(r.Dhikr!.Kind)}", prayer);
+    }
+
     /// <summary>
-    /// With a dhikr, the body line gives way to the Arabic and "Latin · meaning", and the card grows 92 → 104
-    /// (content 56 → 68). Without one the card is exactly as before. The progress bar stays bottom-anchored.
+    /// With a dhikr the card explains itself: the title shrinks to a quiet context line ("10 menit lagi Ashar"),
+    /// an invitation says why, then the Arabic, transliteration and meaning sit centered across the card.
+    /// The card grows to fit (width 380, 400 only if the meaning needs it). Without one, everything is as before.
     /// </summary>
     private void ApplyReminderDhikr(Reminder r)
     {
         var d = HasDhikr(r) ? r.Dhikr : null;
         ReminderDhikr.Visibility = d is null ? Visibility.Collapsed : Visibility.Visible;
         ReminderBody.Visibility = d is null ? Visibility.Visible : Visibility.Collapsed;
-        ReminderContent.Height = d is null ? 56 : 68;
-        ReminderLayer.Height = d is null ? ReminderSize.Height : ReminderDhikrSize.Height;
-        if (d is null) return;
+        // the context row is a quiet header on dhikr cards: 32 tall with a 32 icon (40 / 56 otherwise)
+        ReminderContent.Height = d is null ? 56 : 32;
+        ReminderIconBox.Width = ReminderIconBox.Height = d is null ? 40 : 32;
+        ReminderIcon.FontSize = d is null ? 18 : 15;
+        if (d is null)
+        {
+            // back to the XAML look (ClearValue would drop the XAML-set 14.5 SemiBold too)
+            ReminderTitle.FontSize = 14.5;
+            ReminderTitle.FontWeight = FontWeights.SemiBold;
+            ReminderTitle.ClearValue(TextBlock.ForegroundProperty); // inherits TextPrimary from the TextBlock style
+            SetReminderSize(ReminderSize);
+            return;
+        }
+
+        ReminderTitle.FontSize = 12.5;
+        ReminderTitle.FontWeight = FontWeights.Normal;
+        ReminderTitle.Foreground = ContextBrush;
+        ReminderDhikrInvite.Text = DhikrInvite(r);
         ReminderDhikrArabic.Text = d.Arabic.Trim();
         ReminderDhikrLatin.Text = d.Latin.Trim();
-        ReminderDhikrMeaning.Text = d.Meaning.Trim();
-        ReminderDhikrLine.ToolTip = $"{d.Latin.Trim()} · {d.Meaning.Trim()}";
+        ReminderDhikrMeaning.Text = $"\u201C{d.Meaning.Trim()}\u201D";
+
+        // 380 unless the invitation would wrap or the meaning would need a third line there; then up to 400.
+        var width = ReminderSize.Width;
+        if (NaturalWidth(ReminderDhikrInvite) > width - DhikrSidePadding
+            || LineCount(ReminderDhikrMeaning, width - DhikrSidePadding) > 2) width = DhikrMaxWidth;
+        var inner = width - DhikrSidePadding;
+
+        // Arabic at 24 on one line; step down to 20 before it would wrap (it wraps, never trims).
+        ReminderDhikrArabic.FontSize = 24;
+        ReminderDhikrArabic.LineHeight = 38;
+        if (NaturalWidth(ReminderDhikrArabic) > inner)
+        {
+            ReminderDhikrArabic.FontSize = 20;
+            ReminderDhikrArabic.LineHeight = 32;
+        }
+
+        // Measure at the card width: DesiredSize then includes the block's margin (60 top, 20 + 18 sides).
+        ReminderDhikr.Measure(new Size(width, double.PositiveInfinity));
+        SetReminderSize(new Size(width, Math.Ceiling(ReminderDhikr.DesiredSize.Height + DhikrBlockBottom)));
+    }
+
+    private void SetReminderSize(Size s)
+    {
+        _reminderSize = s;
+        ReminderLayer.Width = s.Width;
+        ReminderLayer.Height = s.Height;
+    }
+
+    /// <summary>Width the text takes on a single line.</summary>
+    private static double NaturalWidth(TextBlock t)
+    {
+        t.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return t.DesiredSize.Width;
+    }
+
+    private static int LineCount(TextBlock t, double width)
+    {
+        t.Measure(new Size(width, double.PositiveInfinity));
+        var line = double.IsNaN(t.LineHeight) ? t.FontSize * t.FontFamily.LineSpacing : t.LineHeight;
+        return (int)Math.Round(t.DesiredSize.Height / line);
+    }
+
+    private static SolidColorBrush FrozenHex(byte r, byte g, byte b)
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
     }
 
     private void ApplyReminderSource(Reminder r)

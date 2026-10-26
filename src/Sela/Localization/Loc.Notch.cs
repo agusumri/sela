@@ -53,6 +53,15 @@ public sealed partial class Loc
         // hadits page
         ["Notch_LoadingHadith"] = ("Memuat hadits…", "Loading hadith…"),
         ["Notch_HadithUnavailable"] = ("Hadits belum tersedia", "Hadith not available yet"),
+        // dhikr on the "N minutes until prayer" card: {0} = prayer name
+        ["Notch_DhikrInvite_Istighfar"] = ("Sambil menunggu {0}, yuk istighfar", "While you wait for {0}, let's seek forgiveness"),
+        ["Notch_DhikrInvite_Tasbih"] = ("Sambil menunggu {0}, yuk bertasbih", "While you wait for {0}, let's glorify Allah"),
+        ["Notch_DhikrInvite_Dzikir"] = ("Sambil menunggu {0}, yuk berdzikir", "While you wait for {0}, let's remember Allah"),
+        ["Notch_DhikrInvite_Tahmid"] = ("Sambil menunggu {0}, yuk bertahmid", "While you wait for {0}, let's praise Allah"),
+        ["Notch_DhikrInvite_Tahlil"] = ("Sambil menunggu {0}, yuk bertahlil", "While you wait for {0}, let's declare Allah's oneness"),
+        ["Notch_DhikrInvite_Takbir"] = ("Sambil menunggu {0}, yuk bertakbir", "While you wait for {0}, let's proclaim Allah's greatness"),
+        ["Notch_DhikrInvite_Shalawat"] = ("Sambil menunggu {0}, yuk bershalawat", "While you wait for {0}, let's send blessings on the Prophet"),
+
         ["Notch_ShowFullArabic"] = ("Tampilkan teks Arab lengkap", "Show full Arabic"),
         ["Notch_HideArabic"] = ("Sembunyikan", "Hide"),
         ["Notch_HabitsToday"] = ("Ibadah hari ini", "Today's worship"),

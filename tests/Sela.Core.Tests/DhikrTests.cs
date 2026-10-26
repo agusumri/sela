@@ -34,7 +34,7 @@ public class DhikrTests
         for (int i = 0; i < 60; i++, d = d.AddDays(1))
         {
             var kinds = ReminderScheduler.Wajib.Select(p => DhikrLibrary.Pick(d, p)).ToList();
-            Assert.Equal(3, kinds.Distinct().Count());
+            Assert.Equal(kinds.Count, kinds.Distinct().Count());
             for (int j = 1; j < kinds.Count; j++) Assert.NotEqual(kinds[j - 1], kinds[j]);
             // Across midnight too: Isya → next day's Subuh.
             Assert.NotEqual(DhikrLibrary.Pick(d, Prayer.Isya), DhikrLibrary.Pick(d.AddDays(1), Prayer.Subuh));
@@ -54,10 +54,36 @@ public class DhikrTests
         }
     }
 
+    [Fact]
+    public void Each_prayer_cycles_through_every_kind()
+    {
+        int n = Enum.GetValues<DhikrKind>().Length;
+        var start = new DateOnly(2026, 1, 1);
+        foreach (var p in ReminderScheduler.Wajib)
+            Assert.Equal(n, Enumerable.Range(0, n).Select(i => DhikrLibrary.Pick(start.AddDays(i), p)).Distinct().Count());
+    }
+
+    [Fact]
+    public void Every_kind_has_text_and_an_invite()
+    {
+        foreach (var k in Enum.GetValues<DhikrKind>())
+            foreach (var lang in new[] { AppLanguage.Indonesian, AppLanguage.English })
+            {
+                var d = DhikrLibrary.For(k, lang);
+                Assert.False(string.IsNullOrWhiteSpace(d.Arabic));
+                Assert.False(string.IsNullOrWhiteSpace(d.Latin));
+                Assert.False(string.IsNullOrWhiteSpace(d.Meaning));
+                Assert.True(Enum.IsDefined(DhikrLibrary.InviteOf(k)));
+            }
+    }
+
     [Theory]
     [InlineData(DhikrKind.Istighfar, "أَسْتَغْفِرُ اللّٰهَ", "Astaghfirullah", "Aku memohon ampun kepada Allah", "I seek Allah's forgiveness")]
     [InlineData(DhikrKind.Tahmid, "اَلْحَمْدُ لِلّٰهِ", "Alhamdulillah", "Segala puji bagi Allah", "All praise is for Allah")]
     [InlineData(DhikrKind.Tahlil, "لَا إِلٰهَ إِلَّا اللّٰهُ", "Lā ilāha illallāh", "Tiada Tuhan selain Allah", "There is no god but Allah")]
+    [InlineData(DhikrKind.Takbir, "اَللّٰهُ أَكْبَرُ", "Allāhu akbar", "Allah Maha Besar", "Allah is the Greatest")]
+    [InlineData(DhikrKind.Shalawat, "صَلَّى اللّٰهُ عَلَىٰ مُحَمَّدٍ", "Shallallāhu ‘alā Muhammad",
+        "Semoga Allah melimpahkan shalawat kepada Muhammad", "May Allah send blessings upon Muhammad")]
     public void For_returns_text_per_language(DhikrKind kind, string arabic, string latin, string id, string en)
     {
         Assert.Equal(new Dhikr(kind, arabic, latin, id), DhikrLibrary.For(kind, AppLanguage.Indonesian));
