@@ -434,12 +434,12 @@
               <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
               <!-- mascot and text sit together as one centered group -->
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <n:SelaMascot x:Name="Mascot" Width="30" Height="30" Margin="0,0,4,0" VerticalAlignment="Center"
+                <n:SelaMascot x:Name="Mascot" Width="30" Height="30" Margin="-8,0,-1,0" VerticalAlignment="Center"
                               IsHitTestVisible="False" Focusable="False"/>
                 <TextBlock x:Name="IdleText" FontSize="12" FontFamily="{StaticResource DisplayFont}"
                            VerticalAlignment="Center" Margin="0,0,0,1"
                            Typography.NumeralAlignment="Tabular">
-                  <Run x:Name="IdleName" FontWeight="SemiBold" Text="Sela"/><Run x:Name="IdleSep" Foreground="{StaticResource TextTertiary}" Text=""/><Run x:Name="IdleCountdown" Foreground="{StaticResource TextSecondary}" Text=""/>
+                  <Run x:Name="IdleName" FontWeight="SemiBold" Text="Sela"/><Run x:Name="IdleSep" Foreground="{StaticResource TextTertiary}" Text=""/><Run x:Name="IdleCountdown" Foreground="{StaticResource Sholat}" Text=""/>
                 </TextBlock>
                 <!-- static hint that the adzan is still sounding (stop it from the glance) -->
                 <TextBlock x:Name="IdleAdhan" Style="{StaticResource Icon}" Text="&#xE767;" FontSize="11" Margin="7,0,0,0"
