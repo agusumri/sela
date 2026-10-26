@@ -32,6 +32,10 @@ AppPublisherURL={#AppUrl}
 AppSupportURL={#AppUrl}/issues
 AppUpdatesURL={#AppUrl}/releases
 VersionInfoVersion={#AppVersion}
+; SignPath checks these file metadata fields (.signpath/artifact-configurations/installer.xml).
+VersionInfoProductName={#AppName}
+VersionInfoProductVersion={#AppVersion}
+VersionInfoProductTextVersion={#AppVersion}
 PrivilegesRequired=lowest
 DefaultDirName={localappdata}\Programs\{#AppName}
 DefaultGroupName={#AppName}
@@ -88,6 +92,9 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 [Registry]
 ; Same value name the app uses (Services/Autostart.cs), so the in-app toggle and installer agree.
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Sela"; ValueData: """{app}\{#AppExe}"""; Tasks: autostart; Flags: uninsdeletevalue
+; The app reads this on its first run so it follows the choice above instead of its own default (Services/Autostart.cs).
+Root: HKCU; Subkey: "Software\Sela"; ValueType: dword; ValueName: "InstallerAutostart"; ValueData: "1"; Tasks: autostart; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Sela"; ValueType: dword; ValueName: "InstallerAutostart"; ValueData: "0"; Tasks: not autostart; Flags: uninsdeletekey
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent

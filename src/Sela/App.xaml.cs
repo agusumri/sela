@@ -146,6 +146,7 @@ public partial class App : Application, IAppCommands
         _notch.ApplyPlacement(_ui.NotchEdge, Math.Clamp(double.IsFinite(_ui.NotchX) ? _ui.NotchX : 0.5, 0, 1));
         _tray = new TrayIcon(this, () => _notch.ExpandPanel(), () => _notch.ShowHadith(), ResetPlacement,
             TestNotify, Shutdown, () => _settings.AdhanMuted, SetAdhanMuted, () => _adhan.IsPlaying);
+        if (_announceAutostart) _tray.ShowNotice(Loc.T("Shell_AutostartNoticeTitle"), Loc.T("Shell_AutostartNoticeBody"));
         CheckDayChanged();
 
         StartTimer(TimeSpan.FromSeconds(1), ClockTick);
@@ -322,11 +323,21 @@ public partial class App : Application, IAppCommands
 
         if (firstRun)
         {
-            try { Autostart.Set(_settings.StartWithWindows); }
+            try
+            {
+                // The installer records the user's "Start with Windows" choice; a portable copy has none, so it
+                // starts with Windows by default and says so once (ShowAutostartNotice).
+                if (Autostart.InstallerChoice is { } chosen) _settings.StartWithWindows = chosen;
+                Autostart.Set(_settings.StartWithWindows);
+                _announceAutostart = _settings.StartWithWindows;
+            }
             catch (Exception ex) { Log.Error("Autostart", ex); }
         }
         if (firstRun || legacyPlaintext) SaveSettings();
     }
+
+    /// <summary>Set on the first run when Sela turned on start-with-Windows itself: the tray tells the user once.</summary>
+    private bool _announceAutostart;
 
     private void SaveSettings()
     {

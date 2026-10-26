@@ -17,6 +17,10 @@ public sealed partial class Loc
         ["Shell_TrayQuit"] = ("Keluar", "Quit"),
         // {0} = prayer name, {1} = time (HH:mm)
         ["Shell_TrayTooltip"] = ("Sela — {0} {1}", "Sela — {0} {1}"),
+        // first run: Sela turned on start-with-Windows
+        ["Shell_AutostartNoticeTitle"] = ("Sela berjalan saat Windows dinyalakan", "Sela starts with Windows"),
+        ["Shell_AutostartNoticeBody"] = ("Supaya pengingat sholat tetap jalan setelah restart. Matikan di Pengaturan > Mulai bersama Windows.",
+                                         "So prayer reminders keep working after a restart. Turn it off in Settings > Start with Windows."),
 
         // Demo / test reminders. {0} = prayer name, {1} = city
         ["Shell_PrayerNowTitle"] = ("Waktu {0}", "Time for {0}"),

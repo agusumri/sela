@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SignPath artifact configuration, slug "exe": the self-contained single-file Sela.exe.
      actions/upload-artifact uploads a ZIP, so the root element is <zip-file>.
+     product-name / product-version are enforced, as the SignPath Foundation terms require;
+     "version" is passed by .github/workflows/release.yml.
      Paste this into SignPath > Project "sela" > Artifact configurations. -->
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
   <zip-file>
-    <pe-file path="Sela.exe" product-name="Sela" max-matches="1">
+    <pe-file path="Sela.exe" product-name="Sela" product-version="${version}" max-matches="1">
       <authenticode-sign />
     </pe-file>
   </zip-file>

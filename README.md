@@ -73,7 +73,14 @@ Sela runs on Windows 10 or 11 (64-bit). You don't need to install .NET.
 3. Run the file. The Sela icon appears in the notification area and the notch appears at the top of the screen.
 
 > [!NOTE]
-> Release files aren't digitally signed yet, so Windows SmartScreen might show a warning. Click **More info**, then **Run anyway**. You can check the files against `SHA256SUMS.txt` on the release page.
+> Release files aren't digitally signed yet, so Windows SmartScreen might show a warning. Click **More info**, then **Run anyway**. You can check the files against `SHA256SUMS.txt` on the release page. See the [code signing policy](#code-signing-policy).
+
+### Uninstall
+
+- **Installer**: open **Settings** > **Apps** > **Installed apps**, find **Sela**, then click **Uninstall**. This also removes the Start menu entry and start-with-Windows.
+- **Portable**: in Sela, turn off **Settings** > **Start with Windows**, quit Sela from the tray menu, then delete the exe.
+
+To also remove your settings, caches, and logs, delete `%LOCALAPPDATA%\Sela`.
 
 ## Get started
 

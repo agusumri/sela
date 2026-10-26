@@ -75,6 +75,9 @@ public sealed class TrayIcon : IDisposable
         if (_icon.Text != text) _icon.Text = text;
     }
 
+    /// <summary>One Windows notification from the tray icon (e.g. the first-run autostart notice).</summary>
+    public void ShowNotice(string title, string text) => _icon.ShowBalloonTip(10_000, title, text, Forms.ToolTipIcon.Info);
+
     private static System.Drawing.Icon? LoadIcon()
     {
         try

@@ -71,6 +71,8 @@ jobs:
           # release signing waits for a manual approval in SignPath
           wait-for-completion-timeout-in-seconds: 3600
           output-artifact-directory: signed/exe
+          parameters: |
+            version: ${{ toJSON(steps.version.outputs.version) }}
 
       - name: Use signed exe
         if: env.SIGN == 'true'
@@ -110,6 +112,8 @@ jobs:
           wait-for-completion: true
           wait-for-completion-timeout-in-seconds: 3600
           output-artifact-directory: signed/installer
+          parameters: |
+            version: ${{ toJSON(steps.version.outputs.version) }}
 
       - name: Use signed installer
         if: env.SIGN == 'true'
@@ -143,7 +147,7 @@ jobs:
           body: |
 
             ---
-            [Code signing policy](https://github.com/agusumri/sela#code-signing-policy) · Check the files against `SHA256SUMS.txt`.
+            [Code signing policy](https://github.com/agusumri/sela#code-signing-policy) Â· Check the files against `SHA256SUMS.txt`.
           files: |
             dist/Sela-*-portable.exe
             dist/Sela-Setup-*.exe

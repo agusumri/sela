@@ -73,7 +73,14 @@ Sela berjalan di Windows 10 atau 11 (64-bit). Kamu tidak perlu memasang .NET.
 3. Jalankan file tersebut. Ikon Sela muncul di tray dan notch muncul di atas layar.
 
 > [!NOTE]
-> File rilis belum ditandatangani secara digital, jadi Windows SmartScreen mungkin menampilkan peringatan. Klik **Info lainnya**, lalu **Tetap jalankan**. Kamu bisa mencocokkan file dengan `SHA256SUMS.txt` di halaman rilis.
+> File rilis belum ditandatangani secara digital, jadi Windows SmartScreen mungkin menampilkan peringatan. Klik **Info lainnya**, lalu **Tetap jalankan**. Kamu bisa mencocokkan file dengan `SHA256SUMS.txt` di halaman rilis. Lihat [code signing policy](#code-signing-policy).
+
+### Copot pemasangan
+
+- **Installer**: buka **Pengaturan** > **Aplikasi** > **Aplikasi terinstal**, cari **Sela**, lalu klik **Copot instalasi**. Entri Start Menu dan mulai bersama Windows ikut dihapus.
+- **Portable**: di Sela, matikan **Pengaturan** > **Mulai bersama Windows**, keluar dari Sela lewat menu tray, lalu hapus file exe-nya.
+
+Untuk sekalian menghapus pengaturan, cache, dan log, hapus folder `%LOCALAPPDATA%\Sela`.
 
 ## Mulai pakai
 
