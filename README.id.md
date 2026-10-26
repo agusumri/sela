@@ -111,6 +111,21 @@ Hal lainnya:
 - Alamat iCal Google disimpan terenkripsi dengan Windows DPAPI, jadi hanya bisa dibuka oleh akun Windows kamu.
 - Pengaturan, cache, dan log disimpan di `%LOCALAPPDATA%\Sela`. Hapus folder itu untuk menghapus semua data Sela.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+File rilis dibangun dari repository ini oleh [GitHub Actions](.github/workflows/release.yml) dan baru ditandatangani setelah disetujui secara manual.
+
+| Peran | Anggota |
+| --- | --- |
+| Committer dan reviewer | [Agus Umriadi (@agusumri)](https://github.com/agusumri) |
+| Approver | [Agus Umriadi (@agusumri)](https://github.com/agusumri) |
+
+Setiap pull request dari luar tim ini direview sebelum digabungkan.
+
+Privasi: program ini tidak mengirim informasi apa pun ke sistem jaringan lain kecuali diminta secara khusus oleh pengguna atau orang yang memasang atau menjalankannya. Layanan yang dihubungi Sela beserta alasannya ada di bagian [Privasi](#privasi).
+
 ## Untuk pengembang
 
 Sela ditulis dengan C# dan WPF di .NET 10.

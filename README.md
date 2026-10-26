@@ -111,6 +111,21 @@ Other details:
 - The Google Calendar address is encrypted with Windows DPAPI, so only your Windows account can read it.
 - Settings, caches, and logs are stored in `%LOCALAPPDATA%\Sela`. Delete that folder to remove all Sela data.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+Release files are built from this repository by [GitHub Actions](.github/workflows/release.yml) and signed only after a manual approval.
+
+| Role | Members |
+| --- | --- |
+| Committers and reviewers | [Agus Umriadi (@agusumri)](https://github.com/agusumri) |
+| Approvers | [Agus Umriadi (@agusumri)](https://github.com/agusumri) |
+
+Every pull request from someone outside this team is reviewed before it's merged.
+
+Privacy: this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. The services Sela contacts, and why, are listed under [Privacy](#privacy).
+
 ## For developers
 
 Sela is written in C# with WPF on .NET 10.

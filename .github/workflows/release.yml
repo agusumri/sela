@@ -7,6 +7,15 @@ on:
 
 permissions:
   contents: write
+  actions: read # SignPath downloads the unsigned artifact from this run
+
+# Code signing (SignPath Foundation) turns on once the repository variables
+# SIGNPATH_ORGANIZATION_ID and SIGNPATH_PROJECT_SLUG and the secret SIGNPATH_API_TOKEN exist.
+# Until then the release is built unsigned, exactly as before. Artifact configurations to
+# create in SignPath: .signpath/artifact-configurations/*.xml (slugs "exe" and "installer").
+env:
+  SIGN: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+  SIGNING_POLICY: ${{ startsWith(github.ref, 'refs/tags/v') && 'release-signing' || 'test-signing' }}
 
 jobs:
   release:
@@ -34,9 +43,87 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
 
-      - name: Build release (tests, publish, installer, checksums)
+      - name: Tests and publish
         shell: pwsh
-        run: ./tools/build-release.ps1 -Version '${{ steps.version.outputs.version }}'
+        run: ./tools/build-release.ps1 -Version '${{ steps.version.outputs.version }}' -Step Publish
+
+      # ---- sign Sela.exe, so the installer packs the signed exe ----
+      - name: Upload unsigned exe
+        id: upload-exe
+        if: env.SIGN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-exe
+          path: dist/publish/Sela.exe
+          if-no-files-found: error
+
+      - name: Sign exe (SignPath)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNING_POLICY }}
+          artifact-configuration-slug: exe
+          github-artifact-id: ${{ steps.upload-exe.outputs.artifact-id }}
+          wait-for-completion: true
+          # release signing waits for a manual approval in SignPath
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed/exe
+
+      - name: Use signed exe
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          $signed = 'signed/exe/Sela.exe'
+          $sig = Get-AuthenticodeSignature $signed
+          # test-signing uses an untrusted test certificate, so only release signing must validate
+          if (-not $sig.SignerCertificate -or ($env:SIGNING_POLICY -eq 'release-signing' -and $sig.Status -ne 'Valid')) { throw "Sela.exe is not signed ($($sig.Status))" }
+          Copy-Item $signed dist/publish/Sela.exe -Force
+          Copy-Item $signed 'dist/Sela-${{ steps.version.outputs.version }}-portable.exe' -Force
+
+      - name: Installer
+        shell: pwsh
+        run: ./tools/build-release.ps1 -Version '${{ steps.version.outputs.version }}' -Step Installer
+
+      # ---- sign the installer ----
+      - name: Upload unsigned installer
+        id: upload-installer
+        if: env.SIGN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-installer
+          path: dist/Sela-Setup-*.exe
+          if-no-files-found: error
+
+      - name: Sign installer (SignPath)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNING_POLICY }}
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.upload-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed/installer
+
+      - name: Use signed installer
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          $name = 'Sela-Setup-${{ steps.version.outputs.version }}.exe'
+          $signed = "signed/installer/$name"
+          $sig = Get-AuthenticodeSignature $signed
+          if (-not $sig.SignerCertificate -or ($env:SIGNING_POLICY -eq 'release-signing' -and $sig.Status -ne 'Valid')) { throw "$name is not signed ($($sig.Status))" }
+          Copy-Item $signed "dist/$name" -Force
+
+      - name: Checksums
+        shell: pwsh
+        run: ./tools/build-release.ps1 -Version '${{ steps.version.outputs.version }}' -Step Checksums
 
       - uses: actions/upload-artifact@v4
         with:
@@ -52,6 +139,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Sela ${{ steps.version.outputs.version }}
+          append_body: true
+          body: |
+
+            ---
+            [Code signing policy](https://github.com/agusumri/sela#code-signing-policy) · Check the files against `SHA256SUMS.txt`.
           files: |
             dist/Sela-*-portable.exe
             dist/Sela-Setup-*.exe
