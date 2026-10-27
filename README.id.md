@@ -190,6 +190,8 @@ Opsi berikut membantu saat mencoba tampilan atau membuat screenshot:
 | `--sky=dawn`, `--sky=day`, `--sky=dusk`, `--sky=night` | Memaksa tampilan maskot untuk satu waktu |
 | `--excited` | Menampilkan maskot dalam mode menjelang sholat |
 | `--sky-tour` | Berganti ke semua tampilan maskot setiap 6 detik |
+| `--just-started` | Bersama `--mock`: waktu Ashar masuk 12 menit lalu, jadi pill menampilkan "Ashar" di atas "Sudah masuk · 12m lalu" |
+| `--prayer-tour` | Bersama `--mock`: jam palsu berjalan melewati satu hari jadwal Jakarta setiap 4 detik (tiap sholat sesaat setelah masuk, di tengah waktu, dan 5 menit sebelum sholat berikutnya, plus lewat tengah malam) dan mencatat tiap tahap ke log |
 
 ### Rilis
 

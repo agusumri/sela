@@ -16,14 +16,15 @@ public static class MockData
     };
 
     /// <summary>
-    /// Jakarta schedule shifted so Ashar is 25 minutes after <paramref name="start"/>.
+    /// Jakarta schedule shifted so Ashar is 25 minutes after <paramref name="start"/>, or, with
+    /// <paramref name="justStarted"/> (--just-started), began 12 minutes before it.
     /// Times are clamped to stay on the start date (order stays non-decreasing).
     /// </summary>
-    public static (DaySchedule Today, DaySchedule Tomorrow) Schedule(DateTime start, City? city = null)
+    public static (DaySchedule Today, DaySchedule Tomorrow) Schedule(DateTime start, City? city = null, bool justStarted = false)
     {
         city ??= DefaultCity.Jakarta;
         var day = start.Date;
-        var offset = start.AddMinutes(25) - day.Add(new TimeSpan(14, 51, 0));
+        var offset = start.AddMinutes(justStarted ? -12 : 25) - day.Add(new TimeSpan(14, 51, 0));
         var lastMinute = day.AddDays(1).AddMinutes(-1);
         var today = BaseTimes
             .Select(t => new PrayerTime(t.Prayer, Clamp(day.Add(t.At) + offset, day, lastMinute)))
@@ -33,6 +34,46 @@ public static class MockData
         return (new DaySchedule(date, city, today),
                 new DaySchedule(date.AddDays(1), city, tomorrow));
     }
+
+    /// <summary>The unshifted Jakarta times on <paramref name="date"/> (and the next day), for <c>--prayer-tour</c>.</summary>
+    public static (DaySchedule Today, DaySchedule Tomorrow) FixedSchedule(DateOnly date, City? city = null)
+    {
+        city ??= DefaultCity.Jakarta;
+        var day = date.ToDateTime(TimeOnly.MinValue);
+        var today = BaseTimes.Select(t => new PrayerTime(t.Prayer, day.Add(t.At))).ToList();
+        var tomorrow = today.Select(t => t with { Time = t.Time.AddDays(1) }).ToList();
+        return (new DaySchedule(date, city, today), new DaySchedule(date.AddDays(1), city, tomorrow));
+    }
+
+    /// <summary>
+    /// <c>--prayer-tour</c> stops on the <see cref="FixedSchedule"/> day: for each period, 12 min after it starts,
+    /// mid-period and 5 min before the next prayer, plus after midnight, Imsak, Terbit and the Dhuha time.
+    /// </summary>
+    public static IReadOnlyList<(TimeSpan At, string Label)> PrayerTourStops { get; } = new (TimeSpan, string)[]
+    {
+        (new(1, 30, 0), "after midnight"),
+        (new(4, 2, 0), "Imsak time"),
+        (new(4, 7, 0), "5 min before Subuh"),
+        (new(4, 24, 0), "Subuh +12 min"),
+        (new(4, 48, 0), "Subuh mid"),
+        (new(5, 20, 0), "5 min before Terbit"),
+        (new(5, 25, 0), "Terbit"),
+        (new(5, 53, 0), "Dhuha time"),
+        (new(8, 40, 0), "Dhuha mid"),
+        (new(11, 35, 0), "5 min before Dzuhur"),
+        (new(11, 52, 0), "Dzuhur +12 min"),
+        (new(13, 15, 0), "Dzuhur mid"),
+        (new(14, 46, 0), "5 min before Ashar"),
+        (new(15, 3, 0), "Ashar +12 min"),
+        (new(16, 20, 0), "Ashar mid"),
+        (new(17, 44, 0), "5 min before Maghrib"),
+        (new(18, 1, 0), "Maghrib +12 min"),
+        (new(18, 24, 0), "Maghrib mid"),
+        (new(18, 54, 0), "5 min before Isya"),
+        (new(19, 11, 0), "Isya +12 min"),
+        (new(21, 30, 0), "Isya mid"),
+        (new(23, 55, 0), "before midnight"),
+    };
 
     /// <summary>Fixed world city for <c>--mock-world</c> screenshots.</summary>
     public static City London { get; } = new("geo:2643743", "London", "England", 51.50853, -0.12574,

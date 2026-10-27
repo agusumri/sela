@@ -20,9 +20,28 @@ public sealed partial class Loc
         ["Notch_AgendaFailed"] = ("Agenda belum bisa dimuat", "Couldn't load your agenda"),
         ["Notch_AgendaFailedHint"] = ("Periksa internet atau Outlook, lalu coba lagi", "Check your internet or Outlook, then try again"),
 
-        // glance
-        ["Notch_NextPrayer"] = ("Sholat berikutnya", "Next prayer"),
-        ["Notch_NextPrayerTomorrow"] = ("Sholat berikutnya · besok", "Next prayer · tomorrow"),
+        // idle pill, second line under the current prayer: {0} = next prayer, {1} = its time
+        ["Notch_IdleNextAt"] = ("Berikutnya {0} {1}", "Next {0} {1}"),
+        // idle pill, second line in the first 30 min after a wajib prayer begins: {0} = elapsed ("12m lalu" / "baru saja")
+        ["Notch_IdleStarted"] = ("Sudah masuk · {0}", "Started · {0}"),
+        ["Notch_MinutesAgo"] = ("{0}m lalu", "{0}m ago"),
+        ["Notch_JustNow"] = ("baru saja", "just now"),
+
+        // glance: now → next timeline
+        ["Notch_GlanceNow"] = ("SEKARANG", "NOW"),
+        ["Notch_GlanceNext"] = ("BERIKUTNYA", "NEXT"),
+        ["Notch_GlanceNextTomorrow"] = ("BERIKUTNYA · BESOK", "NEXT · TOMORROW"),
+        ["Notch_Since"] = ("sejak {0}", "since {0}"),
+        // screen reader sentence for the glance: {0} now, {1} since, {2} next, {3} next time, {4} spoken duration
+        ["Notch_GlanceSpoken"] = ("Sekarang waktu {0} sejak {1}. Berikutnya {2} pukul {3}, {4} lagi.",
+                                  "It's {0} time, since {1}. Next is {2} at {3}, in {4}."),
+        ["Notch_GlanceSpokenNoSince"] = ("Sekarang waktu {0}. Berikutnya {2} pukul {3}, {4} lagi.",
+                                         "It's {0} time. Next is {2} at {3}, in {4}."),
+        ["Notch_GlanceSpokenNext"] = ("Berikutnya {2} pukul {3}, {4} lagi.", "Next is {2} at {3}, in {4}."),
+        ["Notch_SpokenHours"] = ("{0} jam", "{0} hours"),
+        ["Notch_SpokenHour"] = ("{0} jam", "{0} hour"),
+        ["Notch_SpokenMinutes"] = ("{0} menit", "{0} minutes"),
+        ["Notch_SpokenMinute"] = ("{0} menit", "{0} minute"),
         ["Notch_PrayerTimes"] = ("Jadwal sholat", "Prayer times"),
         ["Notch_InProgress"] = ("Sedang berlangsung", "In progress"),
         ["Notch_NoMoreMeetings"] = ("Tidak ada meeting lagi hari ini", "No more meetings today"),

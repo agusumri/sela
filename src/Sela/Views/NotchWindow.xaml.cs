@@ -25,9 +25,11 @@ public partial class NotchWindow : Window, INotchHost
 {
     private enum Mode { Hidden, Idle, Glance, Panel, Reminder }
 
-    private static readonly Size IdleSize = new(236, 30); // room for "Maghrib · 1j 05m 09d" without reflow
-    private static readonly Size GlanceSize = new(380, 96);
-    private static readonly Size GlanceAdhanSize = new(380, 132); // + "Hentikan adzan" row
+    // Two lines (13 + 11 px) beside a 23 DIP orb. Worst case: orb + "Berikutnya Maghrib 18:59" + "23j 59m" + adzan icon
+    // = 243 DIP, ~18 DIP side padding (~28 without the adzan icon).
+    private static readonly Size IdleSize = new(280, 40);
+    private static readonly Size GlanceSize = new(380, 122); // now → next timeline + meeting row
+    private static readonly Size GlanceAdhanSize = new(380, 158); // + "Hentikan adzan" row
     // The panel is 344 wide; its height fits the active tab (see NotchWindow.Content.cs, UpdatePanelHeight).
     private const double PanelWidth = 344;
     private const double PanelMinHeight = 260;
@@ -779,6 +781,19 @@ public partial class NotchWindow : Window, INotchHost
         return a;
     }
 
+    /// <summary>
+    /// Fills the two-line idle pill: <paramref name="primary"/> bold on top, <paramref name="secondary"/> small and
+    /// muted below, <paramref name="countdown"/> green on the right. Empty strings collapse their line.
+    /// </summary>
+    private void SetIdle(string primary, string secondary = "", string countdown = "")
+    {
+        IdlePrimary.Text = primary;
+        IdleSecondary.Text = secondary;
+        IdleSecondary.Visibility = secondary.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        IdleCountdown.Text = countdown;
+        IdleCountdown.Visibility = countdown.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private static void SetNow(UIElement e, DependencyProperty p, double value)
     {
         e.BeginAnimation(p, null);
@@ -828,18 +843,27 @@ public partial class NotchWindow : Window, INotchHost
         var now = State.Now;
         var next = State.Next;
 
-        // idle pill
-        if (next is { } n)
+        var current = CurrentPrayer.For(now, State.Today);
+
+        // idle pill: [orb] current prayer / "Berikutnya Ashar 14:51" · countdown. Right after a wajib prayer begins
+        // (IdleFocus.JustStarted) it reads "Dzuhur / Sudah masuk · 12m lalu" with no countdown.
+        switch (IdleFocus.For(now, State.Today, next))
         {
-            IdleName.Text = NotchFormat.PrayerName(n.Prayer);
-            IdleSep.Text = "  ·  ";
-            IdleCountdown.Text = NotchFormat.Countdown(n.Time - now);
-        }
-        else
-        {
-            IdleName.Text = "Sela";
-            IdleSep.Text = string.Empty;
-            IdleCountdown.Text = string.Empty;
+            case IdleFocus.JustStarted j:
+                SetIdle(NotchFormat.PrayerName(j.Prayer), Loc.F("Notch_IdleStarted", NotchFormat.Ago(now - j.Since)));
+                break;
+            case IdleFocus.Next n when current is { } cur:
+                SetIdle(NotchFormat.PrayerName(cur.Prayer),
+                    Loc.F("Notch_IdleNextAt", NotchFormat.PrayerName(n.Prayer), NotchFormat.Hm(n.Time)),
+                    NotchFormat.CountdownShort(n.Time - now));
+                break;
+            case IdleFocus.Next n:
+                // no current period (schedule for another day): the next prayer is the only item
+                SetIdle(NotchFormat.PrayerName(n.Prayer), NotchFormat.Hm(n.Time), NotchFormat.CountdownShort(n.Time - now));
+                break;
+            default:
+                SetIdle("Sela");
+                break;
         }
         Mascot.Phase = ForcedSky ?? SkyPhases.For(now, State.Today);
         var left = next is { } soon ? soon.Time - now : TimeSpan.MaxValue;
@@ -852,26 +876,49 @@ public partial class NotchWindow : Window, INotchHost
             var step = Tour[_tourStep];
             Mascot.Phase = step.Phase;
             Mascot.IsExcited = step.Excited;
-            IdleName.Text = Loc.T(step.LabelKey);
-            IdleSep.Text = "  ·  ";
-            IdleCountdown.Text = $"{_tourStep + 1}/{Tour.Length}";
+            SetIdle(Loc.T(step.LabelKey), $"{_tourStep + 1}/{Tour.Length}");
         }
 
 
         // glance
         if (next is { } g)
         {
-            GlanceLabel.Text = Loc.T(g.Time.Date > now.Date ? "Notch_NextPrayerTomorrow" : "Notch_NextPrayer");
+            // NOW (left end of the track) → NEXT (right end), with the countdown beside it.
+            GlancePrayerBlock.Visibility = Visibility.Visible;
+            GlanceFallback.Visibility = Visibility.Collapsed;
+            var nowName = current is { } c ? NotchFormat.PrayerName(c.Prayer) : string.Empty;
+            var since = current?.Since;
+            var nowVis = current is null ? Visibility.Collapsed : Visibility.Visible;
+            GlanceNowLabel.Visibility = GlanceNow.Visibility = nowVis;
+            GlanceNow.Text = nowName;
+            GlanceSince.Text = since is { } s ? Loc.F("Notch_Since", NotchFormat.Hm(s)) : string.Empty;
+
+            // Pure function of now, since and next: no timer of its own, it moves with the 1 s tick.
+            if (since is { } from && g.Time > from)
+            {
+                var p = CurrentPrayer.Progress(now, from, g.Time);
+                GlanceTrackDone.Width = new GridLength(p, GridUnitType.Star);
+                GlanceTrackLeft.Width = new GridLength(1 - p, GridUnitType.Star);
+                GlanceTrack.Visibility = Visibility.Visible;
+            }
+            else GlanceTrack.Visibility = Visibility.Collapsed;
+
+            GlanceNextLabel.Text = Loc.T(g.Time.Date > now.Date ? "Notch_GlanceNextTomorrow" : "Notch_GlanceNext");
             GlancePrayer.Text = NotchFormat.PrayerName(g.Prayer);
             GlancePrayerTime.Text = NotchFormat.Hm(g.Time);
             GlanceCountdown.Text = NotchFormat.Countdown(g.Time - now);
+
+            var spokenKey = current is null ? "Notch_GlanceSpokenNext"
+                : since is null ? "Notch_GlanceSpokenNoSince" : "Notch_GlanceSpoken";
+            System.Windows.Automation.AutomationProperties.SetName(GlancePrayerBlock, Loc.F(spokenKey,
+                nowName, since is { } s2 ? NotchFormat.Hm(s2) : string.Empty,
+                GlancePrayer.Text, GlancePrayerTime.Text, NotchFormat.Spoken(g.Time - now)));
         }
         else
         {
-            GlanceLabel.Text = "Sela";
-            GlancePrayer.Text = Loc.T(State.Today is null ? "Notch_ScheduleUnavailable" : "Notch_PrayerTimes");
-            GlancePrayerTime.Text = string.Empty;
-            GlanceCountdown.Text = string.Empty;
+            GlancePrayerBlock.Visibility = Visibility.Collapsed;
+            GlanceFallback.Visibility = Visibility.Visible;
+            GlanceFallbackText.Text = Loc.T(State.Today is null ? "Notch_ScheduleUnavailable" : "Notch_PrayerTimes");
         }
 
         var meeting = State.Agenda?

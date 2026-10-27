@@ -20,7 +20,7 @@
     <Product>Sela</Product>
     <AssemblyTitle>Sela</AssemblyTitle>
     <Company>Sela</Company>
-    <Version>1.1.3</Version>
+    <Version>1.1.4</Version>
     <!-- Product version stays plain "x.y.z" (no "+commit"): SignPath checks it (.signpath/artifact-configurations). -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <ApplicationIcon Condition="Exists('Assets\Sela.ico')">Assets\Sela.ico</ApplicationIcon>

@@ -190,6 +190,8 @@ These options help when you try out the interface or take screenshots:
 | `--sky=dawn`, `--sky=day`, `--sky=dusk`, `--sky=night` | Forces the mascot's look for one time of day |
 | `--excited` | Shows the mascot in its "prayer is close" mode |
 | `--sky-tour` | Cycles through every mascot look every 6 seconds |
+| `--just-started` | With `--mock`: Asr began 12 minutes ago, so the pill shows "Asr" over "Started · 12m ago" |
+| `--prayer-tour` | With `--mock`: steps a fake clock through a fixed Jakarta day every 4 seconds (each prayer just after it starts, mid-period and 5 minutes before the next one, plus after midnight) and logs each stop |
 
 ### Release
 

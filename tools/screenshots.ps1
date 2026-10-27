@@ -137,7 +137,7 @@ try {
     New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
     foreach ($sky in 'night', 'day', 'dawn', 'dusk') {
-        Shot "idle-$sky.png" @("--sky=$sky") 4.0 $cursorCenter { Notch-Rect 236 30 }
+        Shot "idle-$sky.png" @("--sky=$sky") 4.0 $cursorCenter { Notch-Rect 280 40 }
     }
     # Panels are as tall as their content (max 412 DIP): capture the max and let the backdrop fill the rest.
     Shot 'panel-prayer.png'    @('--sky=night', '--panel')        4.0 $cursorCorner { Notch-Rect 344 412 }

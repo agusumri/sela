@@ -37,6 +37,35 @@ public static class NotchFormat
         return $"{s:00}{us}";
     }
 
+    /// <summary>For screen readers: "1 jam 5 menit" / "1 hour 5 minutes", rounded up to the minute.</summary>
+    public static string Spoken(TimeSpan left)
+    {
+        var total = (long)Math.Ceiling(Math.Max(0, left.TotalMinutes));
+        long h = total / 60, m = total % 60;
+        string Part(long n, string one, string many) => Loc.F(n == 1 ? one : many, n);
+        if (h == 0) return Part(m, "Notch_SpokenMinute", "Notch_SpokenMinutes");
+        var hours = Part(h, "Notch_SpokenHour", "Notch_SpokenHours");
+        return m == 0 ? hours : $"{hours} {Part(m, "Notch_SpokenMinute", "Notch_SpokenMinutes")}";
+    }
+
+    /// <summary>
+    /// Compact countdown for the idle pill: "5j 41m" / "5h 41m" from an hour out, otherwise the ticking
+    /// <see cref="Countdown"/> ("25m 04d"), so the last hour still visibly counts down.
+    /// </summary>
+    public static string CountdownShort(TimeSpan left)
+    {
+        var total = (long)Math.Ceiling(Math.Max(0, left.TotalSeconds));
+        if (total < 3600) return Countdown(left);
+        return $"{total / 3600}{Loc.T("Notch_UnitHour")} {total % 3600 / 60:00}{Loc.T("Notch_UnitMinute")}";
+    }
+
+    /// <summary>Whole minutes since a start: "baru saja" / "just now" under a minute, then "12m lalu" / "12m ago".</summary>
+    public static string Ago(TimeSpan elapsed)
+    {
+        var m = (long)Math.Floor(Math.Max(0, elapsed.TotalMinutes));
+        return m < 1 ? Loc.T("Notch_JustNow") : Loc.F("Notch_MinutesAgo", m);
+    }
+
     public static string Hm(DateTime t) => t.ToString("HH:mm", CultureInfo.InvariantCulture);
 
     /// <summary>"Diperbarui 14:05" / "Updated kemarin 21:30"; older than yesterday shows the short date.</summary>

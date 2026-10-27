@@ -482,7 +482,7 @@ public partial class App : Application, IAppCommands
 
     private void ClockTick()
     {
-        var now = DateTime.Now;
+        var now = _prayerTour ? PrayerTourNow() : DateTime.Now;
         _state.Now = now;
         _state.Next = ReminderScheduler.NextPrayer(now, _today, _tomorrow);
         _tray?.SetNextPrayer(_state.Next);
@@ -786,11 +786,20 @@ public partial class App : Application, IAppCommands
 
     // ---- demo / test ----
 
-    /// <summary>--mock: fixed Jakarta (or --mock-world: London) schedule (Ashar in 25 min) and three fake events today.</summary>
+    /// <summary>
+    /// --mock: fixed Jakarta (or --mock-world: London) schedule (Ashar in 25 min, or with --just-started
+    /// Ashar began 12 min ago) and three fake events today.
+    /// </summary>
     private void LoadMockData(City? city)
     {
-        var start = DateTime.Now;
-        (_today, _tomorrow) = MockData.Schedule(start, city);
+        var args = Environment.GetCommandLineArgs();
+        _prayerTour = args.Any(a => string.Equals(a, "--prayer-tour", StringComparison.OrdinalIgnoreCase));
+        if (_prayerTour) _tourStartedAt = DateTime.UtcNow;
+        var start = _prayerTour ? PrayerTourNow() : DateTime.Now;
+        var justStarted = args.Any(a => string.Equals(a, "--just-started", StringComparison.OrdinalIgnoreCase));
+        (_today, _tomorrow) = _prayerTour
+            ? MockData.FixedSchedule(DateOnly.FromDateTime(DateTime.Now), city)
+            : MockData.Schedule(start, city, justStarted);
         _scheduleKey = ScheduleKey(_today.Date, _today.City);
         _events = MockData.Agenda(start);
         _state.City = _today.City;
@@ -799,6 +808,48 @@ public partial class App : Application, IAppCommands
         _state.Agenda = _events;
         _state.CalendarLoading = false;
         _state.Next = ReminderScheduler.NextPrayer(start, _today, _tomorrow);
+    }
+
+    // --prayer-tour (only with --mock, set in LoadMockData): a fake clock that walks the fixed Jakarta day.
+    private bool _prayerTour;
+    private DateTime _tourStartedAt;
+    private int _tourLoggedStop = -1;
+    private static readonly TimeSpan TourStopLength = TimeSpan.FromSeconds(4);
+
+    /// <summary>
+    /// The tour's fake "now": each stop lasts 4 s and its clock runs on in real seconds, so countdowns tick.
+    /// Drives the same path as the real clock (ClockTick → NotchState.Now/Next), so the notch logic is unchanged.
+    /// </summary>
+    private DateTime PrayerTourNow()
+    {
+        var stops = MockData.PrayerTourStops;
+        var elapsed = DateTime.UtcNow - _tourStartedAt;
+        var i = (int)(elapsed.Ticks / TourStopLength.Ticks % stops.Count);
+        var now = DateTime.Today + stops[i].At + TimeSpan.FromTicks(elapsed.Ticks % TourStopLength.Ticks);
+        if (i != _tourLoggedStop)
+        {
+            _tourLoggedStop = i;
+            LogTourStop(i, now);
+        }
+        return now;
+    }
+
+    /// <summary>One log line per stop with what the core logic decides, to check against the pill.</summary>
+    private void LogTourStop(int i, DateTime now)
+    {
+        if (_today is null) { _tourLoggedStop = -1; return; } // first call comes before the schedule is set: log it next tick
+        var next = ReminderScheduler.NextPrayer(now, _today, _tomorrow);
+        var current = CurrentPrayer.For(now, _today);
+        var focus = IdleFocus.For(now, _today, next) switch
+        {
+            IdleFocus.JustStarted j => $"just-started {j.Prayer}",
+            IdleFocus.Next n => $"next {n.Prayer} {n.Time:HH:mm}",
+            _ => "none",
+        };
+        var left = next is { } x ? x.Time - now : TimeSpan.MaxValue;
+        var excited = left > TimeSpan.Zero && left <= TimeSpan.FromMinutes(10);
+        Log.Write($"prayer-tour {i + 1}/{MockData.PrayerTourStops.Count}: {now:HH:mm} {MockData.PrayerTourStops[i].Label} " +
+            $"| current={current?.Prayer.ToString() ?? "-"} focus={focus} sky={SkyPhases.For(now, _today)} excited={excited}");
     }
 
     /// <summary>Shows a reminder and, for prayer-time reminders, sounds the adzan (PlayFor checks the settings).</summary>

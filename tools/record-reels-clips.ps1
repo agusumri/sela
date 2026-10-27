@@ -72,10 +72,10 @@ $backdrop.Add_Paint({ param($s, $e) Fill-Gradient $e.Graphics $s.ClientRectangle
 
 $langArgs = @{ en = @('--lang=en', '--mock-world'); id = @('--lang=id') }
 $clips = @(
-    @{ Name = 'idle-night';     Args = @('--sky=night');                   W = 236; H = 30;  Sec = 5; Cursor = $cursorCenter }
-    @{ Name = 'idle-dawn';      Args = @('--sky=dawn');                    W = 236; H = 30;  Sec = 4; Cursor = $cursorCenter }
-    @{ Name = 'idle-day';       Args = @('--sky=day');                     W = 236; H = 30;  Sec = 4; Cursor = $cursorCenter }
-    @{ Name = 'idle-dusk';      Args = @('--sky=dusk');                    W = 236; H = 30;  Sec = 4; Cursor = $cursorCenter }
+    @{ Name = 'idle-night';     Args = @('--sky=night');                   W = 280; H = 40;  Sec = 5; Cursor = $cursorCenter }
+    @{ Name = 'idle-dawn';      Args = @('--sky=dawn');                    W = 280; H = 40;  Sec = 4; Cursor = $cursorCenter }
+    @{ Name = 'idle-day';       Args = @('--sky=day');                     W = 280; H = 40;  Sec = 4; Cursor = $cursorCenter }
+    @{ Name = 'idle-dusk';      Args = @('--sky=dusk');                    W = 280; H = 40;  Sec = 4; Cursor = $cursorCenter }
     @{ Name = 'panel-prayer';   Args = @('--sky=night', '--panel');        W = 344; H = 412; Sec = 5; Cursor = $cursorCorner }
     @{ Name = 'panel-agenda';   Args = @('--sky=night', '--panel=agenda'); W = 344; H = 412; Sec = 5; Cursor = $cursorCorner }
     @{ Name = 'panel-hadith';   Args = @('--sky=night', '--panel=hadits'); W = 344; H = 412; Sec = 5; Cursor = $cursorCorner }

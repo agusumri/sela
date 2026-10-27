@@ -422,7 +422,7 @@
       </StackPanel.Effect>
       <!-- concave ears let the shape melt into the top edge -->
       <Path x:Name="EarLeft" Width="10" Height="10" VerticalAlignment="Top" Fill="{StaticResource Ink}" Data="M0,0 H10 V10 A10,10 0 0 0 0,0 Z"/>
-              <Border x:Name="Island" Background="{StaticResource Ink}" Width="236" Height="30" CornerRadius="0,0,15,15"
+              <Border x:Name="Island" Background="{StaticResource Ink}" Width="280" Height="40" CornerRadius="0,0,20,20"
               VerticalAlignment="Top" Cursor="Hand" ClipToBounds="True"
               MouseLeftButtonUp="Island_MouseLeftButtonUp">
         <!-- Stage is a fixed 420x420 surface kept centered inside the morphing island, so content never jumps -->
@@ -430,30 +430,43 @@
           <Grid x:Name="Stage" Width="420" Height="420">
 
             <!-- 1. idle pill -->
-            <Grid x:Name="IdleLayer" Width="236" Height="30" HorizontalAlignment="Center" VerticalAlignment="Top">
+            <Grid x:Name="IdleLayer" Width="280" Height="40" HorizontalAlignment="Center" VerticalAlignment="Top">
               <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
-              <!-- mascot and text sit together as one centered group -->
+              <!-- [sky orb] [current prayer / "Berikutnya Ashar 14:51"] [countdown]: one centered group -->
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <n:SelaMascot x:Name="Mascot" Width="30" Height="30" Margin="-8,0,-1,0" VerticalAlignment="Center"
-                              IsHitTestVisible="False" Focusable="False"/>
-                <TextBlock x:Name="IdleText" FontSize="12" FontFamily="{StaticResource DisplayFont}"
-                           VerticalAlignment="Center" Margin="0,0,0,1"
-                           Typography.NumeralAlignment="Tabular">
-                  <Run x:Name="IdleName" FontWeight="SemiBold" Text="Sela"/><Run x:Name="IdleSep" Foreground="{StaticResource TextTertiary}" Text=""/><Run x:Name="IdleCountdown" Foreground="{StaticResource Sholat}" Text=""/>
-                </TextBlock>
+                <!-- The orb is drawn for a 30 DIP box (14 DIP visible). Scaled ×23/14 so the visible orb (23 DIP) spans the
+                     two-line block from line 1's cap top to line 2's baseline (measured: 23.2 DIP). The box becomes
+                     49.3 DIP: margins trim its empty glow area (13.15 DIP a side) so the group centers on the visible orb,
+                     the layout height stays inside the 40 DIP pill, and orb → text is 11 DIP. The faint outer glow
+                     runs past the pill edge and is clipped by the island, where it has already faded to near zero. -->
+                <n:SelaMascot x:Name="Mascot" Width="30" Height="30" Margin="-13.15,-4.65,-2.15,-4.65" VerticalAlignment="Center"
+                              IsHitTestVisible="False" Focusable="False">
+                  <n:SelaMascot.LayoutTransform>
+                    <ScaleTransform ScaleX="1.6428571" ScaleY="1.6428571"/>
+                  </n:SelaMascot.LayoutTransform>
+                </n:SelaMascot>
+                <StackPanel VerticalAlignment="Center" Margin="0,0,0,1">
+                  <TextBlock x:Name="IdlePrimary" Text="Sela" FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"
+                             Foreground="{StaticResource TextPrimary}"/>
+                  <TextBlock x:Name="IdleSecondary" FontSize="11" FontFamily="{StaticResource DisplayFont}" Margin="0,-1,0,0"
+                             Foreground="{StaticResource TextSecondary}" Typography.NumeralAlignment="Tabular" Visibility="Collapsed"/>
+                </StackPanel>
+                <TextBlock x:Name="IdleCountdown" FontSize="15" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"
+                           Foreground="{StaticResource Sholat}" Margin="14,0,0,1" VerticalAlignment="Center"
+                           Typography.NumeralAlignment="Tabular" Visibility="Collapsed"/>
                 <!-- static hint that the adzan is still sounding (stop it from the glance) -->
-                <TextBlock x:Name="IdleAdhan" Style="{StaticResource Icon}" Text="&#xE767;" FontSize="11" Margin="7,0,0,0"
-                           Foreground="{StaticResource Sholat}" Opacity="0.7" Visibility="Collapsed"/>
+                <TextBlock x:Name="IdleAdhan" Style="{StaticResource Icon}" Text="&#xE767;" FontSize="11" Margin="8,0,0,0"
+                           VerticalAlignment="Center" Foreground="{StaticResource Sholat}" Opacity="0.7" Visibility="Collapsed"/>
               </StackPanel>
             </Grid>
 
             <!-- 2. glance -->
-            <Grid x:Name="GlanceLayer" Width="380" Height="132" HorizontalAlignment="Center" VerticalAlignment="Top"
+            <Grid x:Name="GlanceLayer" Width="380" Height="158" HorizontalAlignment="Center" VerticalAlignment="Top"
                   Opacity="0" Visibility="Collapsed">
               <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
               <Grid Margin="18,10,18,10">
                 <Grid.RowDefinitions>
-                  <RowDefinition Height="40"/><RowDefinition Height="Auto"/><RowDefinition Height="30"/><RowDefinition Height="Auto"/>
+                  <RowDefinition Height="66"/><RowDefinition Height="Auto"/><RowDefinition Height="30"/><RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Button x:Name="GlanceStop" Grid.Row="3" Style="{StaticResource OutlineButton}" Margin="0,6,0,0" Padding="0,5"
                         HorizontalAlignment="Stretch" Visibility="Collapsed" Click="StopAdhan_Click"
@@ -471,17 +484,60 @@
                   <Image Source="{StaticResource SelaMarkOnBlack}" Height="25" VerticalAlignment="Center" Margin="-4,0,0,0"
                          Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"
                          Focusable="False" AutomationProperties.Name="Sela"/>
-                  <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="GlanceLabel" Text="{Binding [Notch_NextPrayer], Source={x:Static l:Loc.Instance}}" FontSize="11" Foreground="{StaticResource TextTertiary}"/>
-                    <TextBlock FontFamily="{StaticResource DisplayFont}" Typography.NumeralAlignment="Tabular">
-                      <Run x:Name="GlancePrayer" Text="Sela" FontSize="15.5" FontWeight="SemiBold"/>
-                      <Run x:Name="GlancePrayerTime" Text="" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
-                    </TextBlock>
+                  <!-- now → next as a small timeline: the track runs from the current period's start (left)
+                       to the next prayer (right); the dot is "now". The Label gives screen readers one sentence. -->
+                  <Label x:Name="GlancePrayerBlock" Grid.Column="1" Grid.ColumnSpan="2" Margin="12,0,0,0" Padding="0"
+                         VerticalAlignment="Center" HorizontalContentAlignment="Stretch" Background="Transparent"
+                         Foreground="{StaticResource TextPrimary}" FontFamily="{StaticResource DisplayFont}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                      </Grid.RowDefinitions>
+                      <!-- labels sit over the two ends of the track -->
+                      <TextBlock x:Name="GlanceNowLabel" Text="{Binding [Notch_GlanceNow], Source={x:Static l:Loc.Instance}}"
+                                 FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextTertiary}"/>
+                      <TextBlock x:Name="GlanceNextLabel" Grid.Column="1" FontSize="10" FontWeight="SemiBold" Margin="12,0,0,0"
+                                 Foreground="{StaticResource TextTertiary}" HorizontalAlignment="Right"/>
+                      <TextBlock x:Name="GlanceNow" Grid.Row="1" FontSize="15.5" FontWeight="SemiBold" Foreground="#D6D6DB"/>
+                      <TextBlock x:Name="GlancePrayer" Grid.Row="1" Grid.Column="1" FontSize="15.5" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                      <!-- decorative progress track: elapsed part in soft green, dot = now, end tick = next prayer -->
+                      <Grid x:Name="GlanceTrack" Grid.Row="2" Grid.ColumnSpan="2" Height="7" Margin="0,5,0,4" IsHitTestVisible="False">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition x:Name="GlanceTrackDone" Width="0*"/><ColumnDefinition Width="Auto"/><ColumnDefinition x:Name="GlanceTrackLeft" Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.ColumnSpan="3" Height="3" CornerRadius="1.5" Background="#1C1C20"/>
+                        <Border Height="3" CornerRadius="1.5">
+                          <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                              <GradientStop Offset="0" Color="#263DDC97"/>
+                              <GradientStop Offset="1" Color="#8C3DDC97"/>
+                            </LinearGradientBrush>
+                          </Border.Background>
+                        </Border>
+                        <Ellipse Grid.Column="2" Width="5" Height="5" HorizontalAlignment="Right" Fill="#3A3A40"/>
+                        <!-- zero-width column: the dot hangs centered on the boundary -->
+                        <Ellipse Grid.Column="1" Width="7" Height="7" Margin="-3.5,0" Fill="{StaticResource Sholat}"
+                                 Stroke="{StaticResource Ink}" StrokeThickness="1.5"/>
+                      </Grid>
+                      <TextBlock x:Name="GlanceSince" Grid.Row="3" FontSize="11.5" Foreground="{StaticResource TextTertiary}"
+                                 Typography.NumeralAlignment="Tabular"/>
+                      <TextBlock x:Name="GlancePrayerTime" Grid.Row="3" Grid.Column="1" FontSize="11.5" HorizontalAlignment="Right"
+                                 Foreground="{StaticResource TextSecondary}" Typography.NumeralAlignment="Tabular"/>
+                      <!-- fixed slot: "12j 59m 59d" fits at 19 px, right-aligned so only the digits change; level with the names -->
+                      <TextBlock x:Name="GlanceCountdown" Grid.Column="2" Grid.RowSpan="2" VerticalAlignment="Bottom" Margin="10,0,0,0"
+                                 FontSize="19" FontWeight="SemiBold" Foreground="{StaticResource Sholat}"
+                                 Width="110" TextAlignment="Right" Typography.NumeralAlignment="Tabular"/>
+                    </Grid>
+                  </Label>
+                  <!-- no schedule / no next prayer -->
+                  <StackPanel x:Name="GlanceFallback" Grid.Column="1" Grid.ColumnSpan="2" Margin="12,0,0,0" VerticalAlignment="Center"
+                              Visibility="Collapsed">
+                    <TextBlock Text="Sela" FontSize="11" Foreground="{StaticResource TextTertiary}"/>
+                    <TextBlock x:Name="GlanceFallbackText" FontFamily="{StaticResource DisplayFont}" FontSize="15.5" FontWeight="SemiBold"/>
                   </StackPanel>
-                  <!-- fixed slot: "1j 05m 09d" fits at 19 px, right-aligned so only the digits change -->
-                  <TextBlock x:Name="GlanceCountdown" Grid.Column="2" VerticalAlignment="Center" FontSize="19" FontWeight="SemiBold"
-                             FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource Sholat}"
-                             Width="118" TextAlignment="Right" Typography.NumeralAlignment="Tabular"/>
                 </Grid>
                 <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource Hairline}" Margin="0,5,0,0"/>
                 <Grid Grid.Row="2" VerticalAlignment="Center">

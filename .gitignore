@@ -490,3 +490,6 @@ $RECYCLE.BIN/
 # /brag launch video output (large media)
 brag-output/
 brag-output-*/
+
+# Remotion promo video renders
+video/out/
