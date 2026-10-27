@@ -90,6 +90,10 @@ public interface IAppCommands
     void SnoozeHabit(Habit habit);
     /// <summary>Persists where the user dragged the notch (ui.json).</summary>
     void SaveNotchPlacement(NotchEdge edge, double x);
+    /// <summary>"Lihat rilis" on the new-version card (by reminder key): opens that release page on GitHub.</summary>
+    void OpenUpdate(string reminderKey);
+    /// <summary>"Lewati" on the new-version card: never offer that version again.</summary>
+    void SkipUpdate(string reminderKey);
 }
 
 /// <summary>Screen edge the notch hangs from.</summary>

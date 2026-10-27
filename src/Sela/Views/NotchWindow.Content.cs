@@ -305,6 +305,7 @@ public partial class NotchWindow
         ReminderKind.PrayerNow => (SholatColor, "\uE708", 25),  // crescent
         ReminderKind.Habit => (SholatColor, "\uEB51", 20),      // heart
         ReminderKind.Hadith => (SholatColor, "\uE82D", 15),     // book
+        ReminderKind.Update => (SholatColor, "\uE896", 20),     // download arrow
         _ => (r.Source is { } s ? SourceColor(s) : MeetingColor, "\uE787", 25), // calendar
     };
 
@@ -433,12 +434,14 @@ public partial class NotchWindow
         var join = !holds && r?.Kind == ReminderKind.Meeting && NotchFormat.IsHttps(r.JoinUrl);
         var habit = !holds && r?.Kind == ReminderKind.Habit && r.Habit is not null;
         var read = !holds && r?.Kind == ReminderKind.Hadith;
-        var badge = !holds && !join && !habit && !read;
+        var update = !holds && r?.Kind == ReminderKind.Update;
+        var badge = !holds && !join && !habit && !read && !update;
 
         ReminderStop.Visibility = Show(holds);
         ReminderJoin.Visibility = Show(join);
         ReminderHabit.Visibility = Show(habit);
         ReminderRead.Visibility = Show(read);
+        ReminderUpdate.Visibility = Show(update);
         ReminderBadge.Visibility = Show(badge);
 
         static Visibility Show(bool on) => on ? Visibility.Visible : Visibility.Collapsed;
@@ -455,6 +458,20 @@ public partial class NotchWindow
     {
         e.Handled = true;
         if (_reminder?.Habit is { } h) Commands.SnoozeHabit(h);
+        DismissReminder();
+    }
+
+    private void UpdateOpen_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (_reminder is { Kind: ReminderKind.Update } r) Commands.OpenUpdate(r.Key);
+        DismissReminder();
+    }
+
+    private void UpdateSkip_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (_reminder is { Kind: ReminderKind.Update } r) Commands.SkipUpdate(r.Key);
         DismissReminder();
     }
 

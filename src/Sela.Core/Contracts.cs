@@ -72,7 +72,7 @@ public interface IRefreshableCalendarProvider : ICalendarProvider
     bool LastFetchFailed { get; }
 }
 
-public enum ReminderKind { PrayerSoon, PrayerNow, Meeting, Habit, Hadith }
+public enum ReminderKind { PrayerSoon, PrayerNow, Meeting, Habit, Hadith, Update }
 
 /// <summary>Daily ibadah check-ins Sela asks about.</summary>
 public enum Habit { DzikirPagi, DzikirPetang, Sholawat }
@@ -182,6 +182,12 @@ public sealed class SelaSettings
     public int? PrayerMethod { get; set; }
     /// <summary>Asr by the Hanafi school (shadow factor 2) instead of the standard Shafi'i one.</summary>
     public bool AsrHanafi { get; set; }
+
+    // ---- update check ----
+    /// <summary>Check GitHub for a newer Sela release on startup.</summary>
+    public bool UpdateCheckEnabled { get; set; } = true;
+    /// <summary>Release version the user chose to ignore (e.g. "1.1.5"); null = none.</summary>
+    public string? SkippedUpdateVersion { get; set; }
 
     /// <summary>Calculation options for worldwide (Aladhan) locations; ignored for Kemenag cities.</summary>
     public PrayerCalc GetPrayerCalc() => new(PrayerMethod, AsrHanafi);

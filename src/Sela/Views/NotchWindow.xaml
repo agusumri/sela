@@ -857,6 +857,18 @@
                 <Button x:Name="ReminderRead" Grid.Column="2" Style="{StaticResource PillButton}" Background="{StaticResource Sholat}"
                         Foreground="#000000" Content="{Binding [Notch_Read], Source={x:Static l:Loc.Instance}}" Visibility="Collapsed" Focusable="False" Click="HadithRead_Click"
                         ToolTip="{Binding [Notch_ReadHint], Source={x:Static l:Loc.Instance}}"/>
+                <!-- new version: Lihat rilis / Lewati (this version). Clicking elsewhere or the timeout = remind later -->
+                <StackPanel x:Name="ReminderUpdate" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                            Visibility="Collapsed">
+                  <Button Style="{StaticResource PillButton}" Background="{StaticResource Sholat}" Foreground="#000000"
+                          Padding="13,5" FontSize="12" Content="{Binding [Notch_UpdateOpen], Source={x:Static l:Loc.Instance}}" Click="UpdateOpen_Click"
+                          ToolTip="{Binding [Notch_UpdateOpenHint], Source={x:Static l:Loc.Instance}}"
+                          AutomationProperties.Name="{Binding [Notch_UpdateOpenHint], Source={x:Static l:Loc.Instance}}"/>
+                  <Button Style="{StaticResource OutlineButton}" Foreground="{StaticResource TextSecondary}" BorderBrush="#3A3A40"
+                          Padding="12,5" Margin="6,0,0,0" Content="{Binding [Notch_UpdateSkip], Source={x:Static l:Loc.Instance}}" Click="UpdateSkip_Click"
+                          ToolTip="{Binding [Notch_UpdateSkipHint], Source={x:Static l:Loc.Instance}}"
+                          AutomationProperties.Name="{Binding [Notch_UpdateSkipHint], Source={x:Static l:Loc.Instance}}"/>
+                </StackPanel>
               </Grid>
               <!-- PrayerSoon + dhikr: an invitation that says why, then the dhikr itself, centered across the card.
                    Top = 12 card margin + 32 context row + 8. Card height is fitted to this block from code. -->

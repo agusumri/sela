@@ -91,6 +91,10 @@ public sealed partial class Loc
         ["Notch_Done"] = ("Sudah", "Done"),
         ["Notch_Later"] = ("Nanti", "Later"),
         ["Notch_LaterHint"] = ("Ingatkan lagi 30 menit lagi", "Remind me again in 30 minutes"),
+        ["Notch_UpdateOpen"] = ("Lihat rilis", "View release"),
+        ["Notch_UpdateOpenHint"] = ("Buka halaman rilis di GitHub", "Open the release page on GitHub"),
+        ["Notch_UpdateSkip"] = ("Lewati", "Skip"),
+        ["Notch_UpdateSkipHint"] = ("Lewati versi ini", "Skip this version"),
         ["Notch_Read"] = ("Baca", "Read"),
         ["Notch_ReadHint"] = ("Buka hadits lengkap", "Open the full hadith"),
 

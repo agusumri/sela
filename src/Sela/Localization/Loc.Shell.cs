@@ -29,6 +29,9 @@ public sealed partial class Loc
         ["Shell_DemoSoonBody"] = ("Bersiap untuk sholat {0}", "Get ready for {0} prayer"),
         // {0} = start, {1} = end
         ["Shell_DemoMeetingBody"] = ("{0}–{1} · mulai 5 menit lagi · Microsoft Teams", "{0}–{1} · starts in 5 minutes · Microsoft Teams"),
+        // new-version card: {0} = new version, {1} = running version
+        ["Shell_UpdateTitle"] = ("Sela {0} tersedia", "Sela {0} is available"),
+        ["Shell_UpdateBody"] = ("Kamu memakai {1}", "You're on {1}"),
         ["Shell_TestHabitTitle"] = ("Sudah sholawat hari ini?", "Have you sent salawat today?"),
         ["Shell_TestHabitBody"] = ("Luangkan sebentar untuk bersholawat", "Take a moment to send salawat"),
     };

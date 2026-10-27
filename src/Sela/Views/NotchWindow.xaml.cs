@@ -400,6 +400,19 @@ public partial class NotchWindow : Window, INotchHost
     private void TryShowNext()
     {
         if (_reminder is not null || _queueGap.IsEnabled || _mode == Mode.Panel || _queue.Count == 0) return;
+        // A "new version" card never shows while the adzan sounds: it waits (OnAdhanPlayingChanged retries),
+        // and prayer cards queued behind it still go first.
+        if (State.AdhanPlaying && _queue.Peek().Kind == ReminderKind.Update)
+        {
+            var held = _queue.ToList();
+            var next = held.FirstOrDefault(r => r.Kind != ReminderKind.Update);
+            if (next is null) return;
+            held.Remove(next);
+            _queue.Clear();
+            foreach (var r in held) _queue.Enqueue(r);
+            ShowReminderNow(next);
+            return;
+        }
         ShowReminderNow(_queue.Dequeue());
     }
 
@@ -521,6 +534,7 @@ public partial class NotchWindow : Window, INotchHost
             else if (!IsMouseOver) _reminderClock?.Controller?.Resume(); // adzan ended: normal countdown again
         }
         if (_mode == Mode.Glance) GoTo(Mode.Glance); // grow/shrink for the stop row
+        if (!State.AdhanPlaying) TryShowNext(); // a held "new version" card can show now
     }
 
     private void Glow(Color? color)

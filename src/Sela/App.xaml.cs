@@ -153,6 +153,13 @@ public partial class App : Application, IAppCommands
         StartTimer(TimeSpan.FromSeconds(2), UpdateIdleVisibility);
         StartTimer(TimeSpan.FromSeconds(20), () => _ = ReminderTickAsync());
         StartTimer(TimeSpan.FromSeconds(60), () => _ = RefreshCalendarAsync());
+        if (!_mock && !_offline)
+        {
+            // New version: first look ~90 s after start (not during startup), then once a day.
+            StartTimer(TimeSpan.FromHours(24), () => _ = CheckForUpdateAsync());
+            _ = Task.Delay(TimeSpan.FromSeconds(90), _shutdown.Token)
+                .ContinueWith(t => { if (!t.IsCanceled) _ = CheckForUpdateAsync(); }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
         SystemEvents.TimeChanged += OnTimeChanged;
         _state.IsOnline = !_offline && NetworkInterface.GetIsNetworkAvailable();
@@ -168,6 +175,7 @@ public partial class App : Application, IAppCommands
         if (e.Args.Contains("--test-habit", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestHabit);
         if (e.Args.Contains("--test-hadith", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestHadith);
         if (e.Args.Contains("--test-dhikr", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestDhikr);
+        if (e.Args.Contains("--test-update", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(TestUpdate);
         // --test-soon: the "N minutes until Ashar" card as it looks with the dhikr setting off
         if (e.Args.Contains("--test-soon", StringComparer.OrdinalIgnoreCase)) _ = ShowAfterDelayAsync(() =>
         {
@@ -262,6 +270,78 @@ public partial class App : Application, IAppCommands
     }
 
     public void SnoozeHabit(Habit habit) => _habitScheduler.Snooze(habit, DateTime.Now);
+
+    // ---- new version ----
+
+    private UpdateChecker? _updateChecker;
+    private bool _updateCheckRunning;
+    /// <summary>Cards offered this session, by reminder key ("update|1.2.0"): each version is offered at most once.</summary>
+    private readonly Dictionary<string, UpdateInfo> _offeredUpdates = new(StringComparer.Ordinal);
+
+    /// <summary>The running version (Sela.csproj &lt;Version&gt;), as Major.Minor.Build.</summary>
+    private static Version CurrentVersion
+    {
+        get
+        {
+            var v = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(0, 0, 0);
+            return new Version(v.Major, v.Minor, Math.Max(v.Build, 0));
+        }
+    }
+
+    private static string UpdateKey(Version v) => $"update|{v}";
+
+    /// <summary>Daily check (first one ~90 s after start). Quiet on failure; skipped when off, --mock or --offline.</summary>
+    private async Task CheckForUpdateAsync()
+    {
+        if (_mock || _offline || _http is null || !_settings.UpdateCheckEnabled || _updateCheckRunning) return;
+        _updateCheckRunning = true;
+        try
+        {
+            _updateChecker ??= new UpdateChecker(_http, Log.Write);
+            var info = await _updateChecker.CheckAsync(CurrentVersion, _shutdown.Token);
+            if (info is not null) OfferUpdate(info);
+        }
+        catch (OperationCanceledException) { /* shutting down */ }
+        catch (Exception ex) { Log.Error("Cek versi", ex); }
+        finally { _updateCheckRunning = false; }
+    }
+
+    /// <summary>Queues the card unless the check was turned off meanwhile, the version was skipped, or it was offered already.</summary>
+    private void OfferUpdate(UpdateInfo info)
+    {
+        if (!_settings.UpdateCheckEnabled) return;
+        if (string.Equals(_settings.SkippedUpdateVersion, info.Version.ToString(), StringComparison.Ordinal)) return;
+        var key = UpdateKey(info.Version);
+        if (!_offeredUpdates.TryAdd(key, info)) return;
+        Log.Write($"update: offering {info.Version}");
+        _notch.ShowReminder(UpdateCard(key, info.Version));
+    }
+
+    private static Reminder UpdateCard(string key, Version version) =>
+        new(key, ReminderKind.Update, Loc.F("Shell_UpdateTitle", version, CurrentVersion),
+            Loc.F("Shell_UpdateBody", version, CurrentVersion), null, null, DateTime.Now);
+
+    public void OpenUpdate(string reminderKey)
+    {
+        // Only the URI the checker validated for this card (https://github.com/agusumri/sela/releases/...).
+        if (!_offeredUpdates.TryGetValue(reminderKey, out var info)) return;
+        var uri = info.ReleaseUrl;
+        if (uri.Scheme != Uri.UriSchemeHttps || !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase))
+        {
+            Log.Write("Halaman rilis ditolak (bukan https://github.com).");
+            return;
+        }
+        try { Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true })?.Dispose(); }
+        catch (Exception ex) { Log.Error("Membuka halaman rilis", ex); }
+    }
+
+    public void SkipUpdate(string reminderKey)
+    {
+        if (!_offeredUpdates.TryGetValue(reminderKey, out var info)) return;
+        _settings.SkippedUpdateVersion = info.Version.ToString();
+        SaveSettings(); // no-op under --mock
+        Log.Write($"update: skipping {info.Version}");
+    }
 
     public void SaveNotchPlacement(NotchEdge edge, double x)
     {
@@ -387,7 +467,10 @@ public partial class App : Application, IAppCommands
     private void OnSettingsSaved(SelaSettings settings, UiSettings ui, bool startWithWindows)
     {
         settings.StartWithWindows = startWithWindows;
+        // "Lewati" on the new-version card is shell-owned; the window's copy may predate it.
+        var skipped = _settings.SkippedUpdateVersion;
         _settings = Clone(settings);
+        _settings.SkippedUpdateVersion = skipped;
         var placed = _ui;
         _ui = Clone(ui);
         // Placement and the daily-card date are owned by the shell; the window's copy may be stale.
@@ -897,6 +980,15 @@ public partial class App : Application, IAppCommands
         var hadith = _state.Hadith ?? MockData.Hadith(DateOnly.FromDateTime(now));
         Deliver(new Reminder($"test-hadith|{Guid.NewGuid():N}", ReminderKind.Hadith, hadith.Title, hadith.Translation,
             null, null, now));
+    }
+
+    /// <summary>--test-update: the new-version card for a fake 9.9.9 (opens the real releases page).</summary>
+    private void TestUpdate()
+    {
+        var info = new UpdateInfo(new Version(9, 9, 9), new Uri("https://github.com/agusumri/sela/releases"));
+        var key = $"{UpdateKey(info.Version)}|test|{Guid.NewGuid():N}";
+        _offeredUpdates[key] = info;
+        _notch.ShowReminder(UpdateCard(key, info.Version));
     }
 
     /// <summary>The dhikr the scheduler would attach to today's Ashar card, in the UI language.</summary>

@@ -3,7 +3,9 @@ namespace Sela.Core;
 internal static class SafeIo
 {
     /// <summary>GET <paramref name="uri"/> over https with a timeout and a hard size cap. Throws on any failure.</summary>
-    public static async Task<string> GetStringAsync(HttpClient http, Uri uri, TimeSpan timeout, long maxBytes, string? accept, CancellationToken ct)
+    /// <param name="headers">Optional extra per-request headers (never touches the shared client's defaults).</param>
+    public static async Task<string> GetStringAsync(HttpClient http, Uri uri, TimeSpan timeout, long maxBytes, string? accept, CancellationToken ct,
+        IEnumerable<KeyValuePair<string, string>>? headers = null)
     {
         if (uri.Scheme != Uri.UriSchemeHttps) throw new HttpRequestException("Only https addresses are allowed.");
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -11,6 +13,8 @@ internal static class SafeIo
 
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         if (accept is not null) request.Headers.TryAddWithoutValidation("Accept", accept);
+        if (headers is not null)
+            foreach (var (name, value) in headers) request.Headers.TryAddWithoutValidation(name, value);
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         if (response.RequestMessage?.RequestUri is { } final && final.Scheme != Uri.UriSchemeHttps)

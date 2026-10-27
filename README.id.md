@@ -110,6 +110,7 @@ Sela tidak punya server dan tidak mengirim data pribadi ke mana pun. Sela hanya 
 - `api.aladhan.com` untuk jadwal sholat di luar Indonesia, memakai koordinat kota yang kamu pilih,
 - `geocoding-api.open-meteo.com` untuk pencarian kota,
 - `cdn.jsdelivr.net` untuk hadits berbahasa Inggris,
+- `api.github.com` sekali sehari, untuk melihat apakah ada rilis Sela yang baru. Ini permintaan web biasa tanpa data pribadi. Bisa dimatikan di Pengaturan lewat **Cek versi baru**,
 - alamat iCal Google yang kamu masukkan.
 
 Hal lainnya:
@@ -185,6 +186,7 @@ Opsi berikut membantu saat mencoba tampilan atau membuat screenshot:
 | `--test-notify` | Menampilkan satu contoh pengingat masuk waktu sholat |
 | `--test-adhan` | Memutar adzan Dzuhur |
 | `--test-habit`, `--test-hadith` | Menampilkan contoh kartu pengingat ibadah atau kartu hadits harian |
+| `--test-update` | Menampilkan kartu "versi baru tersedia" untuk versi palsu 9.9.9 (bisa bersama `--mock`) |
 | `--settings` | Membuka pengaturan saat aplikasi mulai |
 | `--panel`, `--panel=agenda`, `--panel=hadits` | Membuka panel di tab Sholat, Agenda, atau Hadits saat aplikasi mulai |
 | `--sky=dawn`, `--sky=day`, `--sky=dusk`, `--sky=night` | Memaksa tampilan maskot untuk satu waktu |

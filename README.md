@@ -110,6 +110,7 @@ Sela has no server and doesn't send your personal data anywhere. It only connect
 - `api.aladhan.com` for prayer times outside Indonesia, using the coordinates of the city you picked,
 - `geocoding-api.open-meteo.com` for the city search,
 - `cdn.jsdelivr.net` for the English hadith,
+- `api.github.com` once a day, to see whether a new Sela release is out. This is a normal web request with no personal data. Turn it off in Settings under **Check for updates**,
 - the Google Calendar iCal address you enter.
 
 Other details:
@@ -185,6 +186,7 @@ These options help when you try out the interface or take screenshots:
 | `--test-notify` | Shows one sample prayer-time reminder |
 | `--test-adhan` | Plays the Dhuhr adhan |
 | `--test-habit`, `--test-hadith` | Shows a sample check-in card or the daily hadith card |
+| `--test-update` | Shows the "new version available" card for a fake 9.9.9 (works with `--mock`) |
 | `--settings` | Opens Settings at startup |
 | `--panel`, `--panel=agenda`, `--panel=hadits` | Opens the panel on the Prayer, Agenda, or Hadith tab at startup |
 | `--sky=dawn`, `--sky=day`, `--sky=dusk`, `--sky=night` | Forces the mascot's look for one time of day |

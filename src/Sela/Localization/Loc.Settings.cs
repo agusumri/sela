@@ -108,5 +108,8 @@ public sealed partial class Loc
         ["Settings_General"] = ("Umum", "General"),
         ["Settings_Autostart"] = ("Mulai bersama Windows", "Start with Windows"),
         ["Settings_Idle"] = ("Tampilkan notch saat diam", "Show the notch when idle"),
+        ["Settings_UpdateCheck"] = ("Cek versi baru", "Check for updates"),
+        ["Settings_UpdateCheckHint"] = ("Sekali sehari menghubungi GitHub untuk melihat rilis terbaru",
+                                        "Contacts GitHub once a day to look for a new release"),
     };
 }
