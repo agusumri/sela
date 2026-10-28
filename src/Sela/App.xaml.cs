@@ -38,6 +38,7 @@ public partial class App : Application, IAppCommands
     private DateOnly _day;                  // day the habit map / hadith were last refreshed for
     private SerialJob _hadithJob = null!;
     private AppLanguage? _langOverride;     // --lang=en|id: this session only, never saved
+    private int? _idleScaleOverride;        // --idle-scale=50|75|100: this session only, never saved
 
     private readonly NotchState _state = new();
     private NotchWindow _notch = null!;
@@ -85,6 +86,7 @@ public partial class App : Application, IAppCommands
         _offline = e.Args.Contains("--offline", StringComparer.OrdinalIgnoreCase);
         s_agendaIncludeTomorrow = e.Args.Contains("--agenda-tomorrow", StringComparer.OrdinalIgnoreCase);
         _langOverride = ParseLanguageArg(e.Args);
+        _idleScaleOverride = ParseIdleScaleArg(e.Args);
         Loc.MissingKeyLog = Log.Write;
 
         if (_mock)
@@ -144,6 +146,7 @@ public partial class App : Application, IAppCommands
         _notch = new NotchWindow(_state, this);
         _notch.Show();
         _notch.ApplyPlacement(_ui.NotchEdge, Math.Clamp(double.IsFinite(_ui.NotchX) ? _ui.NotchX : 0.5, 0, 1));
+        ApplyIdleScale();
         _tray = new TrayIcon(this, () => _notch.ExpandPanel(), () => _notch.ShowHadith(), ResetPlacement,
             TestNotify, Shutdown, () => _settings.AdhanMuted, SetAdhanMuted, () => _adhan.IsPlaying);
         if (_announceAutostart) _tray.ShowNotice(Loc.T("Shell_AutostartNoticeTitle"), Loc.T("Shell_AutostartNoticeBody"));
@@ -485,9 +488,11 @@ public partial class App : Application, IAppCommands
             catch (Exception ex) { Log.Error("Autostart", ex); }
         }
         if (_adhan.IsPlaying && (_settings.AdhanMuted || !_settings.AdhanEnabled)) _adhan.Stop();
-        // A saved choice replaces the session-only --lang override.
+        // A saved choice replaces the session-only --lang / --idle-scale overrides.
         _langOverride = null;
         ApplyLanguage();
+        _idleScaleOverride = null;
+        ApplyIdleScale();
 
         if (!_mock)
         {
@@ -517,6 +522,24 @@ public partial class App : Application, IAppCommands
     }
 
     private void ApplyLanguage() => Loc.Instance.Language = _langOverride ?? _settings.ResolveLanguage();
+
+    // ---- idle pill size ----
+
+    /// <summary>--idle-scale=50|75|100: this session only, never saved (review aid, like --lang).</summary>
+    private static int? ParseIdleScaleArg(string[] args)
+    {
+        foreach (var arg in args)
+        {
+            if (!arg.StartsWith("--idle-scale=", StringComparison.OrdinalIgnoreCase)) continue;
+            if (int.TryParse(arg["--idle-scale=".Length..], System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out var p) && NotchScale.Normalize(p) == p)
+                return p;
+            Log.Write($"Ignoring {arg} (expected --idle-scale=50, 75 or 100)");
+        }
+        return null;
+    }
+
+    private void ApplyIdleScale() => _notch.SetIdleScale(_idleScaleOverride ?? _settings.NotchIdleScale);
 
     /// <summary>
     /// Settings for the schedulers, whose reminder copy follows SelaSettings.ResolveLanguage():

@@ -26,8 +26,11 @@ public partial class NotchWindow : Window, INotchHost
     private enum Mode { Hidden, Idle, Glance, Panel, Reminder }
 
     // Two lines (13 + 11 px) beside a 23 DIP orb. Worst case: orb + "Berikutnya Maghrib 18:59" + "23j 59m" + adzan icon
-    // = 243 DIP, ~18 DIP side padding (~28 without the adzan icon).
-    private static readonly Size IdleSize = new(280, 40);
+    // = 243 DIP, ~18 DIP side padding (~28 without the adzan icon). This is the 100% size.
+    private static readonly Size IdleFullSize = new(280, 40);
+    private double _idleScale = 1;
+    /// <summary>The idle pill at the chosen size (Settings › Notch size): 280x40, 210x30 or 140x20.</summary>
+    private Size IdleSize => new(IdleFullSize.Width * _idleScale, IdleFullSize.Height * _idleScale);
     private static readonly Size GlanceSize = new(380, 122); // now → next timeline + meeting row
     private static readonly Size GlanceAdhanSize = new(380, 158); // + "Hentikan adzan" row
     // The panel is 344 wide; its height fits the active tab (see NotchWindow.Content.cs, UpdatePanelHeight).
@@ -132,6 +135,26 @@ public partial class NotchWindow : Window, INotchHost
 
     public NotchState State { get; }
     public IAppCommands Commands { get; }
+
+    /// <summary>
+    /// Idle pill size in percent (50 / 75 / 100; anything else = 100). The idle content is laid out once at full size
+    /// and scaled as one piece (IdleScale), and the island's idle size follows, so every morph from and back to the
+    /// pill uses the new size. Glance, panel and reminder cards are unaffected. Safe to call at any time.
+    /// </summary>
+    public void SetIdleScale(int percent)
+    {
+        var scale = NotchScale.Normalize(percent) / 100.0;
+        if (Math.Abs(scale - _idleScale) < 0.001) return;
+        _idleScale = scale;
+        IdleScale.ScaleX = IdleScale.ScaleY = scale;
+        if (_mode == Mode.Idle) GoTo(Mode.Idle); // morphs the pill to its new size
+        else if (_mode == Mode.Hidden)
+        {
+            SetNow(Island, WidthProperty, IdleSize.Width);
+            SetNow(Island, HeightProperty, IdleSize.Height);
+        }
+        // Glance / panel / reminder: the next Rest() lands on the new IdleSize.
+    }
 
     private static bool Motion => SystemParameters.ClientAreaAnimation;
 

@@ -212,6 +212,7 @@ public partial class SettingsWindow : Window
         AutostartToggle.IsChecked = startWithWindows;
         IdleToggle.IsChecked = _ui.NotchAlwaysVisible;
         UpdateToggle.IsChecked = _settings.UpdateCheckEnabled;
+        SelectSegment(IdleScaleGroup, NotchScale.Normalize(_settings.NotchIdleScale), fallback: NotchScale.Default);
 
         UpdateGoogleValidation();
     }
@@ -246,6 +247,7 @@ public partial class SettingsWindow : Window
         AsrHanafi = s.AsrHanafi,
         UpdateCheckEnabled = s.UpdateCheckEnabled,
         SkippedUpdateVersion = s.SkippedUpdateVersion,
+        NotchIdleScale = s.NotchIdleScale,
     };
 
     // ---------- Ibadah harian ----------
@@ -715,6 +717,7 @@ public partial class SettingsWindow : Window
         _settings.StartWithWindows = autostart;
         _ui.NotchAlwaysVisible = IdleToggle.IsChecked == true;
         _settings.UpdateCheckEnabled = UpdateToggle.IsChecked == true;
+        _settings.NotchIdleScale = NotchScale.Normalize(SelectedSegment(IdleScaleGroup, NotchScale.Default));
         SaveAdhan();
         SaveHabits();
         // Language is written by the segmented control; calculation only matters for world places but is kept either way.

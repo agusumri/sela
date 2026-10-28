@@ -189,6 +189,10 @@ public sealed class SelaSettings
     /// <summary>Release version the user chose to ignore (e.g. "1.1.5"); null = none.</summary>
     public string? SkippedUpdateVersion { get; set; }
 
+    // ---- display ----
+    /// <summary>Idle pill size in percent: 50, 75 or 100 (read through <see cref="NotchScale.Normalize"/>).</summary>
+    public int NotchIdleScale { get; set; } = NotchScale.Default;
+
     /// <summary>Calculation options for worldwide (Aladhan) locations; ignored for Kemenag cities.</summary>
     public PrayerCalc GetPrayerCalc() => new(PrayerMethod, AsrHanafi);
 

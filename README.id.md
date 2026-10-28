@@ -100,6 +100,7 @@ Setelah itu notch langsung menampilkan sholat berikutnya. Untuk memastikan pengi
 - **Arahkan kursor** ke pill untuk melihat sholat berikutnya dan meeting terdekat.
 - **Klik** pill untuk membuka tab **Sholat**, **Agenda**, dan **Hadits**. Tekan `Esc` atau pindahkan kursor untuk menutupnya.
 - **Geser** pill untuk memindahkannya ke kiri, kanan, atau ke tepi bawah layar. Untuk mengembalikannya, klik kanan ikon tray lalu klik **Kembalikan posisi notch**.
+- Di layar kecil, perkecil pill lewat **Pengaturan** > **Umum** > **Ukuran notch** (50%, 75%, atau 100%). Hanya pill saat diam yang berubah; tampilan saat diarahkan kursor dan panel tetap ukurannya.
 - Saat adzan berbunyi, klik **Hentikan** di kartu pengingat, atau klik **Hentikan adzan** di menu tray. Untuk membisukan adzan sementara, centang **Bisukan adzan** di menu tray.
 
 ## Privasi
@@ -193,6 +194,7 @@ Opsi berikut membantu saat mencoba tampilan atau membuat screenshot:
 | `--excited` | Menampilkan maskot dalam mode menjelang sholat |
 | `--sky-tour` | Berganti ke semua tampilan maskot setiap 6 detik |
 | `--just-started` | Bersama `--mock`: waktu Ashar masuk 12 menit lalu, jadi pill menampilkan "Ashar" di atas "Sudah masuk · 12m lalu" |
+| `--idle-scale=50`, `--idle-scale=75`, `--idle-scale=100` | Memakai ukuran pill tersebut untuk sesi ini saja |
 | `--prayer-tour` | Bersama `--mock`: jam palsu berjalan melewati satu hari jadwal Jakarta setiap 4 detik (tiap sholat sesaat setelah masuk, di tengah waktu, dan 5 menit sebelum sholat berikutnya, plus lewat tengah malam) dan mencatat tiap tahap ke log |
 
 ### Rilis

@@ -100,6 +100,7 @@ The notch shows the next prayer right away. To check that reminders and the adha
 - **Hover** over the pill to see the next prayer and your next meeting.
 - **Click** the pill to open the **Prayer**, **Agenda**, and **Hadith** tabs. Press `Esc` or move the pointer away to close it.
 - **Drag** the pill to move it left or right, or to the bottom edge of the screen. To put it back, right-click the tray icon and click **Reset notch position**.
+- On a small screen, make the pill smaller in **Settings** > **General** > **Notch size** (50%, 75% or 100%). Only the idle pill changes; the hover view and the panel keep their size.
 - When the adhan plays, click **Stop** on the reminder card, or click **Stop adhan** in the tray menu. To silence it for a while, select **Mute adhan** in the tray menu.
 
 ## Privacy
@@ -193,6 +194,7 @@ These options help when you try out the interface or take screenshots:
 | `--excited` | Shows the mascot in its "prayer is close" mode |
 | `--sky-tour` | Cycles through every mascot look every 6 seconds |
 | `--just-started` | With `--mock`: Asr began 12 minutes ago, so the pill shows "Asr" over "Started · 12m ago" |
+| `--idle-scale=50`, `--idle-scale=75`, `--idle-scale=100` | Uses that idle pill size for this session only |
 | `--prayer-tour` | With `--mock`: steps a fake clock through a fixed Jakarta day every 4 seconds (each prayer just after it starts, mid-period and 5 minutes before the next one, plus after midnight) and logs each stop |
 
 ### Release

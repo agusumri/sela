@@ -430,7 +430,12 @@
           <Grid x:Name="Stage" Width="420" Height="420">
 
             <!-- 1. idle pill -->
-            <Grid x:Name="IdleLayer" Width="280" Height="40" HorizontalAlignment="Center" VerticalAlignment="Top">
+            <!-- Laid out at 100% (280x40); IdleScale shrinks it as one piece for the 75% / 50% settings (SetIdleScale).
+                 A LayoutTransform, so the Stage centers the scaled size; text is re-rasterized at the scaled size
+                 (Ideal formatting), not stretched from a bitmap. -->
+            <Grid x:Name="IdleLayer" Width="280" Height="40" HorizontalAlignment="Center" VerticalAlignment="Top"
+                  TextOptions.TextHintingMode="Fixed">
+              <Grid.LayoutTransform><ScaleTransform x:Name="IdleScale" ScaleX="1" ScaleY="1"/></Grid.LayoutTransform>
               <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
               <!-- [sky orb] [current prayer / "Berikutnya Ashar 14:51"] [countdown]: one centered group -->
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
