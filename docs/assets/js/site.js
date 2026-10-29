@@ -9,6 +9,7 @@
     navMascot: 'Maskot',
     navPrivacy: 'Privasi',
     navDownload: 'Unduh',
+    navMap: 'Peta kode',
     langLabel: 'Bahasa',
     heroEyebrow: 'Gratis dan open source · untuk Windows',
     heroTitle: 'Jeda sejenak di sela kesibukan.',
